@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Auth</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+  <style>
+    :root {
+      --bg: #060612;
+      --surface: #0d0d1f;
+      --card: #12122a;
+      --border: rgba(255,255,255,0.07);
+      --accent1: #ff3cac;
+      --accent2: #784ba0;
+      --accent3: #2b86c5;
+      --accent4: #00f5d4;
+      --text: #f0eeff;
+      --muted: #8880aa;
+      --glow1: rgba(255, 60, 172, 0.35);
+      --glow2: rgba(0, 245, 212, 0.25);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Animated Background ── */
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.55;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #ff3cac, transparent 70%); top: -15%; left: -10%; animation-delay: 0s; }
+    .orb-2 { width: 450px; height: 450px; background: radial-gradient(circle, #2b86c5, transparent 70%); bottom: -10%; right: -5%; animation-delay: -4s; }
+    .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, #00f5d4, transparent 70%); top: 40%; left: 55%; animation-delay: -8s; }
+    .orb-4 { width: 280px; height: 280px; background: radial-gradient(circle, #784ba0, transparent 70%); bottom: 20%; left: 10%; animation-delay: -6s; }
+
+    @keyframes drift {
+      0%   { transform: translate(0,0) scale(1); }
+      50%  { transform: translate(40px, -30px) scale(1.08); }
+      100% { transform: translate(-20px, 50px) scale(0.95); }
+    }
+
+    /* Grid overlay */
+    .bg-canvas::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 50px 50px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative; z-index: 10;
+      width: 440px;
+      background: linear-gradient(145deg, rgba(18,18,42,0.92), rgba(10,10,28,0.96));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 44px 40px 36px;
+      box-shadow:
+        0 0 0 1px rgba(255,60,172,0.08),
+        0 30px 80px rgba(0,0,0,0.6),
+        0 0 60px rgba(255,60,172,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      backdrop-filter: blur(24px);
+      animation: cardIn 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(40px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Corner accents */
+    .card::before, .card::after {
+      content: '';
+      position: absolute;
+      width: 60px; height: 60px;
+      border-radius: 4px;
+    }
+    .card::before {
+      top: -1px; left: -1px;
+      border-top: 2px solid var(--accent1);
+      border-left: 2px solid var(--accent1);
+      border-radius: 24px 0 0 0;
+    }
+    .card::after {
+      bottom: -1px; right: -1px;
+      border-bottom: 2px solid var(--accent4);
+      border-right: 2px solid var(--accent4);
+      border-radius: 0 0 24px 0;
+    }
+
+    /* ── Header ── */
+    .logo-row {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 8px;
+    }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 20px rgba(255,60,172,0.4);
+      animation: pulse-logo 3s ease-in-out infinite;
+    }
+    @keyframes pulse-logo {
+      0%,100% { box-shadow: 0 4px 20px rgba(255,60,172,0.4); }
+      50%      { box-shadow: 0 4px 32px rgba(255,60,172,0.7); }
+    }
+
+    h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--accent1), #b06ce4, var(--accent3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 -40px 28px;
+    }
+
+    /* ── Tab switcher ── */
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border-radius: 9px;
+      transition: all 0.25s;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(255,60,172,0.35);
+    }
+
+    /* ── Inputs ── */
+    .field {
+      margin-bottom: 18px;
+      position: relative;
+    }
+    .field label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .field-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .field-icon {
+      position: absolute;
+      left: 14px;
+      font-size: 15px;
+      opacity: 0.5;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .field input {
+      width: 100%;
+      padding: 13px 16px 13px 42px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.25s;
+    }
+    .field input::placeholder { color: rgba(136,128,170,0.5); }
+    .field input:focus {
+      background: rgba(255,255,255,0.07);
+      border-color: var(--accent1);
+      box-shadow: 0 0 0 3px rgba(255,60,172,0.12), 0 0 20px rgba(255,60,172,0.08);
+    }
+    .field input:focus + .field-icon,
+    .field-wrap:focus-within .field-icon { opacity: 1; }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    button {
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      border: none;
+      border-radius: 12px;
+      transition: all 0.22s;
+    }
+    .btn-primary {
+      flex: 1;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2), var(--accent3));
+      background-size: 200% 200%;
+      color: #fff;
+      font-size: 14px;
+      box-shadow: 0 6px 24px rgba(255,60,172,0.3);
+      animation: grad-shift 4s ease infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover::after { opacity: 1; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,60,172,0.45); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 13px;
+      background: transparent;
+      border: 1px solid rgba(255,60,172,0.4);
+      color: var(--accent1);
+      font-size: 14px;
+    }
+    .btn-secondary:hover {
+      background: rgba(255,60,172,0.08);
+      border-color: var(--accent1);
+      transform: translateY(-2px);
+    }
+
+    @keyframes grad-shift {
+      0%,100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+
+    /* ── Token box ── */
+    .token-section {
+      margin-bottom: 16px;
+    }
+    .token-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .token-dot {
+      width: 6px; height: 6px;
+      background: var(--accent4);
+      border-radius: 50%;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--accent4);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent2) transparent;
+    }
+    textarea:focus { border-color: var(--accent4); }
+    textarea::placeholder { color: rgba(0,245,212,0.25); }
+
+    /* ── API Button ── */
+    .btn-api {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(43,134,197,0.15));
+      border: 1px solid rgba(0,245,212,0.35);
+      color: var(--accent4);
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-api:hover {
+      background: linear-gradient(135deg, rgba(0,245,212,0.25), rgba(43,134,197,0.25));
+      box-shadow: 0 0 20px rgba(0,245,212,0.2);
+      transform: translateY(-2px);
+    }
+    .arrow {
+      font-size: 16px;
+      transition: transform 0.2s;
+    }
+    .btn-api:hover .arrow { transform: translateX(4px); }
+
+    /* ── Message ── */
+    #msg {
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      min-height: 18px;
+      text-align: center;
+      padding: 0 4px;
+      transition: all 0.3s;
+    }
+    #msg.success { color: var(--accent4); }
+    #msg.error   { color: var(--accent1); }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(136,128,170,0.4);
+      letter-spacing: 0.08em;
+    }
+
+    /* Floating particles */
+    .particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+    .particle {
+      position: absolute;
+      width: 2px; height: 2px;
+      border-radius: 50%;
+      background: var(--accent1);
+      animation: float-up linear infinite;
+      opacity: 0;
+    }
+    @keyframes float-up {
+      0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+      10%  { opacity: 0.6; }
+      90%  { opacity: 0.3; }
+      100% { transform: translateY(-100px) translateX(60px); opacity: 0; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Backgrounds -->
+<div class="bg-canvas">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+</div>
+<div class="particles" id="particles"></div>
+
+<!-- Card -->
+<div class="card">
+
+  <div class="logo-row">
+    <div class="logo-icon">⚡</div>
+    <h2>Auth Portal</h2>
+  </div>
+  <p class="subtitle">Secure · Verified · Instant access</p>
+
+  <div class="divider"></div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Login</button>
+    <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+  </div>
+
+  <!-- Email -->
+  <div class="field">
+    <label>Email Address</label>
+    <div class="field-wrap">
+      <input id="email" type="email" placeholder="you@example.com">
+      <span class="field-icon">✉️</span>
+    </div>
+  </div>
+
+  <!-- Password -->
+  <div class="field">
+    <label>Password</label>
+    <div class="field-wrap">
+      <input id="password" type="password" placeholder="••••••••••">
+      <span class="field-icon">🔑</span>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="btn-row" id="btn-row">
+    <button class="btn-primary" onclick="login()">Login →</button>
+  </div>
+
+  <!-- Token -->
+  <div class="token-section">
+    <div class="token-label">
+      <span class="token-dot"></span>
+      Access Token
+    </div>
+    <textarea id="tokenBox" rows="4" placeholder="Your JWT token will appear here after login..."></textarea>
+  </div>
+
+  <!-- API button -->
+  <button class="btn-api" onclick="goDocs()">
+    <span>Open API Docs</span>
+    <span class="arrow">→</span>
+  </button>
+
+  <p id="msg"></p>
+
+  <div class="footer">SECURED WITH FIREBASE AUTH · AES-256</div>
+</div>
+
+<script>
+  /* ── Tab logic ── */
+  function switchTab(tab) {
+    const loginBtn = document.getElementById('tab-login');
+    const signupBtn = document.getElementById('tab-signup');
+    const btnRow = document.getElementById('btn-row');
+
+    if (tab === 'login') {
+      loginBtn.classList.add('active');
+      signupBtn.classList.remove('active');
+      btnRow.innerHTML = `<button class="btn-primary" onclick="login()">Login →</button>`;
+    } else {
+      signupBtn.classList.add('active');
+      loginBtn.classList.remove('active');
+      btnRow.innerHTML = `<button class="btn-primary" onclick="signup()">Create Account →</button>`;
+    }
+  }
+
+  /* ── Particles ── */
+  const colors = ['#ff3cac','#00f5d4','#2b86c5','#784ba0','#fff'];
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (8 + Math.random() * 14) + 's';
+    p.style.animationDelay = (Math.random() * 14) + 's';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = p.style.height = (1 + Math.random() * 3) + 'px';
+    container.appendChild(p);
+  }
+
+  /* ── Message helper ── */
+  function setMsg(text, type = '') {
+    const el = document.getElementById('msg');
+    el.className = type;
+    el.innerText = text;
+  }
+
+  /* ── Firebase ── */
+  const firebaseConfig = {
+    apiKey: "AIzaSyBTi0hycT_nCgThOoLDLDfXhCuLWeKcPMU",
+    authDomain: "sales-forecasting-75f26.firebaseapp.com"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  function signup() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(userCredential => {
+        userCredential.user.sendEmailVerification();
+        setMsg("📩 Check your email to verify your account", 'success');
+      })
+      .catch(err => setMsg(err.message, 'error'));
+  }
+
+  function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(email, password)
+      .then(async (userCredential) => {
+        const user = userCredential.user;
+        if (!user.emailVerified) {
+          setMsg("❌ Please verify your email first", 'error');
+          return;
+        }
+        const token = await user.getIdToken();
+        document.getElementById("tokenBox").value = token;
+        localStorage.setItem("token", token);
+        setMsg("✅ Login successful — token ready", 'success');
+      })
+      .catch(err => setMsg(err.message, 'error'));
+  }
+
+  function goDocs() {
+    window.location.href = "http://127.0.0.1:8000/docs";
+  }
+</script>
+
+</body>
+</html>
+```
