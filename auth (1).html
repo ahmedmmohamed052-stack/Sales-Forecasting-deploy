@@ -24,6 +24,7 @@
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
 
     body {
       font-family: 'DM Mono', monospace;
@@ -38,7 +39,6 @@
       position: relative;
     }
 
-    /* ── Animated Background ── */
     .bg-canvas {
       position: fixed; inset: 0; z-index: 0;
       overflow: hidden;
@@ -61,7 +61,6 @@
       100% { transform: translate(-20px, 50px) scale(0.95); }
     }
 
-    /* Grid overlay */
     .bg-canvas::after {
       content: '';
       position: absolute; inset: 0;
@@ -72,7 +71,6 @@
       mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
     }
 
-    /* ── Card ── */
     .card {
       position: relative; z-index: 10;
       width: 440px;
@@ -94,7 +92,6 @@
       to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Corner accents */
     .card::before, .card::after {
       content: '';
       position: absolute;
@@ -114,7 +111,6 @@
       border-radius: 0 0 24px 0;
     }
 
-    /* ── Header ── */
     .logo-row {
       display: flex; align-items: center; gap: 12px;
       margin-bottom: 8px;
@@ -152,14 +148,12 @@
       margin-bottom: 32px;
     }
 
-    /* ── Divider ── */
     .divider {
       height: 1px;
       background: linear-gradient(90deg, transparent, var(--border), transparent);
       margin: 0 -40px 28px;
     }
 
-    /* ── Tab switcher ── */
     .tabs {
       display: flex;
       background: rgba(255,255,255,0.04);
@@ -188,7 +182,6 @@
       box-shadow: 0 4px 14px rgba(255,60,172,0.35);
     }
 
-    /* ── Inputs ── */
     .field {
       margin-bottom: 18px;
       position: relative;
@@ -232,10 +225,8 @@
       border-color: var(--accent1);
       box-shadow: 0 0 0 3px rgba(255,60,172,0.12), 0 0 20px rgba(255,60,172,0.08);
     }
-    .field input:focus + .field-icon,
     .field-wrap:focus-within .field-icon { opacity: 1; }
 
-    /* ── Buttons ── */
     .btn-row {
       display: flex;
       gap: 12px;
@@ -271,20 +262,10 @@
     }
     .btn-primary:hover::after { opacity: 1; }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,60,172,0.45); }
-    .btn-primary:active { transform: translateY(0); }
-
-    .btn-secondary {
-      flex: 1;
-      padding: 13px;
-      background: transparent;
-      border: 1px solid rgba(255,60,172,0.4);
-      color: var(--accent1);
-      font-size: 14px;
-    }
-    .btn-secondary:hover {
-      background: rgba(255,60,172,0.08);
-      border-color: var(--accent1);
-      transform: translateY(-2px);
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
     }
 
     @keyframes grad-shift {
@@ -292,10 +273,7 @@
       50%      { background-position: 100% 50%; }
     }
 
-    /* ── Token box ── */
-    .token-section {
-      margin-bottom: 16px;
-    }
+    .token-section { margin-bottom: 16px; }
     .token-label {
       font-size: 11px;
       letter-spacing: 0.1em;
@@ -333,7 +311,6 @@
     textarea:focus { border-color: var(--accent4); }
     textarea::placeholder { color: rgba(0,245,212,0.25); }
 
-    /* ── API Button ── */
     .btn-api {
       width: 100%;
       padding: 13px;
@@ -352,13 +329,9 @@
       box-shadow: 0 0 20px rgba(0,245,212,0.2);
       transform: translateY(-2px);
     }
-    .arrow {
-      font-size: 16px;
-      transition: transform 0.2s;
-    }
+    .arrow { font-size: 16px; transition: transform 0.2s; }
     .btn-api:hover .arrow { transform: translateX(4px); }
 
-    /* ── Message ── */
     #msg {
       font-size: 12px;
       letter-spacing: 0.03em;
@@ -369,8 +342,8 @@
     }
     #msg.success { color: var(--accent4); }
     #msg.error   { color: var(--accent1); }
+    #msg.loading { color: var(--muted); }
 
-    /* ── Footer ── */
     .footer {
       margin-top: 24px;
       text-align: center;
@@ -379,7 +352,6 @@
       letter-spacing: 0.08em;
     }
 
-    /* Floating particles */
     .particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
     .particle {
       position: absolute;
@@ -395,12 +367,14 @@
       90%  { opacity: 0.3; }
       100% { transform: translateY(-100px) translateX(60px); opacity: 0; }
     }
+
+    /* Token section مخفية في Sign Up */
+    .login-only { display: block; }
   </style>
 </head>
 
 <body>
 
-<!-- Backgrounds -->
 <div class="bg-canvas">
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
@@ -409,7 +383,6 @@
 </div>
 <div class="particles" id="particles"></div>
 
-<!-- Card -->
 <div class="card">
 
   <div class="logo-row">
@@ -420,13 +393,11 @@
 
   <div class="divider"></div>
 
-  <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Login</button>
     <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
   </div>
 
-  <!-- Email -->
   <div class="field">
     <label>Email Address</label>
     <div class="field-wrap">
@@ -435,7 +406,6 @@
     </div>
   </div>
 
-  <!-- Password -->
   <div class="field">
     <label>Password</label>
     <div class="field-wrap">
@@ -444,13 +414,12 @@
     </div>
   </div>
 
-  <!-- Action buttons -->
   <div class="btn-row" id="btn-row">
-    <button class="btn-primary" onclick="login()">Login →</button>
+    <button class="btn-primary" id="main-btn" onclick="login()">Login →</button>
   </div>
 
-  <!-- Token -->
-  <div class="token-section">
+  <!-- Token — بتظهر بس في Login -->
+  <div class="token-section login-only" id="token-section">
     <div class="token-label">
       <span class="token-dot"></span>
       Access Token
@@ -458,8 +427,7 @@
     <textarea id="tokenBox" rows="4" placeholder="Your JWT token will appear here after login..."></textarea>
   </div>
 
-  <!-- API button -->
-  <button class="btn-api" onclick="goDocs()">
+  <button class="btn-api login-only" id="api-btn" onclick="goDocs()">
     <span>Open API Docs</span>
     <span class="arrow">→</span>
   </button>
@@ -470,87 +438,181 @@
 </div>
 
 <script>
-  /* ── Tab logic ── */
-  function switchTab(tab) {
-    const loginBtn = document.getElementById('tab-login');
-    const signupBtn = document.getElementById('tab-signup');
-    const btnRow = document.getElementById('btn-row');
+  // ========================================================
+  // ⚙️ غيّر الـ URL لو السيرفر بتاعك على port مختلف
+  // ========================================================
+  const API_BASE = "http://127.0.0.1:8001";
 
-    if (tab === 'login') {
-      loginBtn.classList.add('active');
-      signupBtn.classList.remove('active');
-      btnRow.innerHTML = `<button class="btn-primary" onclick="login()">Login →</button>`;
-    } else {
-      signupBtn.classList.add('active');
-      loginBtn.classList.remove('active');
-      btnRow.innerHTML = `<button class="btn-primary" onclick="signup()">Create Account →</button>`;
-    }
-  }
-
-  /* ── Particles ── */
-  const colors = ['#ff3cac','#00f5d4','#2b86c5','#784ba0','#fff'];
-  const container = document.getElementById('particles');
-  for (let i = 0; i < 30; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    p.style.left = Math.random() * 100 + 'vw';
-    p.style.animationDuration = (8 + Math.random() * 14) + 's';
-    p.style.animationDelay = (Math.random() * 14) + 's';
-    p.style.background = colors[Math.floor(Math.random() * colors.length)];
-    p.style.width = p.style.height = (1 + Math.random() * 3) + 'px';
-    container.appendChild(p);
-  }
-
-  /* ── Message helper ── */
-  function setMsg(text, type = '') {
-    const el = document.getElementById('msg');
-    el.className = type;
-    el.innerText = text;
-  }
-
-  /* ── Firebase ── */
+  // ========================================================
+  // 🔥 Firebase Config
+  // ========================================================
   const firebaseConfig = {
     apiKey: "AIzaSyBTi0hycT_nCgThOoLDLDfXhCuLWeKcPMU",
     authDomain: "sales-forecasting-75f26.firebaseapp.com"
   };
-
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
 
-  function signup() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    auth.createUserWithEmailAndPassword(email, password)
-      .then(userCredential => {
-        userCredential.user.sendEmailVerification();
-        setMsg("📩 Check your email to verify your account", 'success');
-      })
-      .catch(err => setMsg(err.message, 'error'));
+  // ========================================================
+  // Tab Logic
+  // ========================================================
+  let currentTab = 'login';
+
+  function switchTab(tab) {
+    currentTab = tab;
+    const loginBtn  = document.getElementById('tab-login');
+    const signupBtn = document.getElementById('tab-signup');
+    const mainBtn   = document.getElementById('main-btn');
+    const tokenSec  = document.getElementById('token-section');
+    const apiBtn    = document.getElementById('api-btn');
+
+    setMsg('');
+
+    if (tab === 'login') {
+      loginBtn.classList.add('active');
+      signupBtn.classList.remove('active');
+      mainBtn.textContent  = 'Login →';
+      mainBtn.onclick      = login;
+      tokenSec.style.display = 'block';
+      apiBtn.style.display   = 'flex';
+    } else {
+      signupBtn.classList.add('active');
+      loginBtn.classList.remove('active');
+      mainBtn.textContent  = 'Create Account →';
+      mainBtn.onclick      = signup;
+      tokenSec.style.display = 'none';   // مش محتاج token في Sign Up
+      apiBtn.style.display   = 'none';
+    }
   }
 
-  function login() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    auth.signInWithEmailAndPassword(email, password)
-      .then(async (userCredential) => {
-        const user = userCredential.user;
-        if (!user.emailVerified) {
-          setMsg("❌ Please verify your email first", 'error');
-          return;
-        }
-        const token = await user.getIdToken();
-        document.getElementById("tokenBox").value = token;
-        localStorage.setItem("token", token);
-        setMsg("✅ Login successful — token ready", 'success');
-      })
-      .catch(err => setMsg(err.message, 'error'));
+  // ========================================================
+  // Particles
+  // ========================================================
+  const colors    = ['#ff3cac','#00f5d4','#2b86c5','#784ba0','#fff'];
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left              = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (8 + Math.random() * 14) + 's';
+    p.style.animationDelay    = (Math.random() * 14) + 's';
+    p.style.background        = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = p.style.height = (1 + Math.random() * 3) + 'px';
+    container.appendChild(p);
   }
 
+  // ========================================================
+  // Helpers
+  // ========================================================
+  function setMsg(text, type = '') {
+    const el = document.getElementById('msg');
+    el.className  = type;
+    el.innerText  = text;
+  }
+
+  function setLoading(state) {
+    const btn = document.getElementById('main-btn');
+    btn.disabled    = state;
+    btn.textContent = state
+      ? '⏳ Please wait...'
+      : (currentTab === 'login' ? 'Login →' : 'Create Account →');
+  }
+
+  // ========================================================
+  // 🗄️ حفظ اليوزر في MySQL عبر الـ Endpoint المخفي
+  // ========================================================
+  async function saveUserToDB(uid, email, displayName = null) {
+    try {
+      const res = await fetch(`${API_BASE}/internal/register-user`, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ uid, email, display_name: displayName }),
+      });
+      if (!res.ok) {
+        console.warn('DB registration warning:', await res.text());
+      }
+    } catch (err) {
+      // مش بنوقف الـ sign up لو DB فشل — بس بنسجّل في console
+      console.error('DB save failed:', err);
+    }
+  }
+
+  // ========================================================
+  // ✅ Sign Up
+  // ========================================================
+  async function signup() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+      setMsg('❌ Please fill in all fields', 'error');
+      return;
+    }
+
+    setLoading(true);
+    setMsg('Creating account...', 'loading');
+
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      // 1️⃣ إرسال إيميل التحقق
+      await user.sendEmailVerification();
+
+      // 2️⃣ حفظ اليوزر في MySQL تلقائياً (مخفي عن اليوزر)
+      await saveUserToDB(user.uid, user.email, user.displayName);
+
+      setMsg('📩 Account created! Check your email to verify.', 'success');
+    } catch (err) {
+      setMsg('❌ ' + err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ========================================================
+  // 🔐 Login
+  // ========================================================
+  async function login() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+      setMsg('❌ Please fill in all fields', 'error');
+      return;
+    }
+
+    setLoading(true);
+    setMsg('Signing in...', 'loading');
+
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        setMsg('❌ Please verify your email first', 'error');
+        setLoading(false);
+        return;
+      }
+
+      const token = await user.getIdToken();
+      document.getElementById('tokenBox').value = token;
+      localStorage.setItem('token', token);
+      setMsg('✅ Login successful — token ready', 'success');
+    } catch (err) {
+      setMsg('❌ ' + err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ========================================================
+  // Open API Docs
+  // ========================================================
   function goDocs() {
-    window.location.href = "http://127.0.0.1:8000/docs";
+    window.location.href = `${API_BASE}/docs`;
   }
 </script>
 
 </body>
 </html>
-```
