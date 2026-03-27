@@ -25,9 +25,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 # 🔥  INIT FIREBASE
 # =============================================================================
 if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    firebase_dict = dict(st.secrets["firebase"])
+    firebase_dict["private_key"] = firebase_dict["private_key"].replace("\\n", "\n")
+
+    cred = credentials.Certificate(firebase_dict)
     firebase_admin.initialize_app(cred)
-firebase_admin.initialize_app(cred)
 
 security = HTTPBearer()
 
