@@ -7,3 +7,4 @@ scikit-learn
 xgboost
 joblib
 firebase-admin
+sqlalchemy
