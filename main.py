@@ -14,6 +14,8 @@ import firebase_admin
 from firebase_admin import credentials, auth
 from firebase_admin import credentials
 import streamlit as st
+import firebase_admin
+from firebase_admin import credentials
 # 🗄️ MySQL
 from sqlalchemy import create_engine, Column, String, DateTime, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
@@ -22,7 +24,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 # =============================================================================
 # 🔥  INIT FIREBASE
 # =============================================================================
-cred = credentials.Certificate(st.secrets["firebase"])
+if not firebase_admin._apps:
+    cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    firebase_admin.initialize_app(cred)
 firebase_admin.initialize_app(cred)
 
 security = HTTPBearer()
