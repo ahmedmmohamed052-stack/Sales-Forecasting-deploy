@@ -3,7 +3,6 @@
 <head>
   <title>Auth</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
@@ -24,7 +23,6 @@
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
 
     body {
       font-family: 'DM Mono', monospace;
@@ -39,38 +37,223 @@
       position: relative;
     }
 
-    .bg-canvas {
-      position: fixed; inset: 0; z-index: 0;
-      overflow: hidden;
-    }
+    /* ── Background ── */
+    .bg-canvas { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
     .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.55;
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); opacity: 0.55;
       animation: drift 12s ease-in-out infinite alternate;
     }
-    .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #ff3cac, transparent 70%); top: -15%; left: -10%; animation-delay: 0s; }
-    .orb-2 { width: 450px; height: 450px; background: radial-gradient(circle, #2b86c5, transparent 70%); bottom: -10%; right: -5%; animation-delay: -4s; }
-    .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, #00f5d4, transparent 70%); top: 40%; left: 55%; animation-delay: -8s; }
-    .orb-4 { width: 280px; height: 280px; background: radial-gradient(circle, #784ba0, transparent 70%); bottom: 20%; left: 10%; animation-delay: -6s; }
-
+    .orb-1 { width:500px;height:500px;background:radial-gradient(circle,#ff3cac,transparent 70%);top:-15%;left:-10%;animation-delay:0s; }
+    .orb-2 { width:450px;height:450px;background:radial-gradient(circle,#2b86c5,transparent 70%);bottom:-10%;right:-5%;animation-delay:-4s; }
+    .orb-3 { width:350px;height:350px;background:radial-gradient(circle,#00f5d4,transparent 70%);top:40%;left:55%;animation-delay:-8s; }
+    .orb-4 { width:280px;height:280px;background:radial-gradient(circle,#784ba0,transparent 70%);bottom:20%;left:10%;animation-delay:-6s; }
     @keyframes drift {
-      0%   { transform: translate(0,0) scale(1); }
-      50%  { transform: translate(40px, -30px) scale(1.08); }
-      100% { transform: translate(-20px, 50px) scale(0.95); }
+      0%   { transform:translate(0,0) scale(1); }
+      50%  { transform:translate(40px,-30px) scale(1.08); }
+      100% { transform:translate(-20px,50px) scale(0.95); }
     }
-
     .bg-canvas::after {
-      content: '';
-      position: absolute; inset: 0;
+      content:''; position:absolute; inset:0;
       background-image:
-        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-      background-size: 50px 50px;
-      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+        linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:50px 50px;
+      mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);
     }
 
+    /* ══════════════════════════════════════════
+       👁  3D EYE
+    ══════════════════════════════════════════ */
+    .eye-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 28px;
+      /* فوق التابز مباشرة */
+    }
+
+    .eye-wrap {
+      position: relative;
+      width: 110px;
+      height: 110px;
+    }
+
+    /* حلقات النبض الخارجية */
+    .eye-wrap::before, .eye-wrap::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(255,60,172,0.25);
+      animation: eye-ring-pulse 2.5s ease-in-out infinite;
+    }
+    .eye-wrap::before {
+      inset: -14px;
+      animation-delay: 0s;
+    }
+    .eye-wrap::after {
+      inset: -28px;
+      border-color: rgba(0,245,212,0.15);
+      animation-delay: 0.6s;
+    }
+    @keyframes eye-ring-pulse {
+      0%,100% { opacity:0.3; transform:scale(1); }
+      50%      { opacity:0.9; transform:scale(1.04); }
+    }
+
+    /* الكرة الرئيسية (العين نفسها) */
+    .eyeball {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 35% 32%, rgba(255,255,255,0.18) 0%, transparent 55%),
+        radial-gradient(circle at 65% 68%, rgba(0,245,212,0.06) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, #d8ccff 0%, #b89ee8 20%, #7a55c0 45%, #3a1f80 70%, #160a38 100%);
+      box-shadow:
+        0 0 0 2px rgba(255,60,172,0.4),
+        0 0 30px rgba(255,60,172,0.45),
+        0 0 60px rgba(120,75,160,0.3),
+        inset 0 0 25px rgba(0,0,0,0.55),
+        inset 0 3px 8px rgba(255,255,255,0.08);
+    }
+
+    /* وريدات حمراء خفيفة */
+    .eyeball::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: 50%;
+      background:
+        radial-gradient(ellipse 3px 42% at 18% 50%, rgba(255,70,90,0.28) 0%, transparent 100%),
+        radial-gradient(ellipse 3px 36% at 82% 42%, rgba(255,70,90,0.2) 0%, transparent 100%),
+        radial-gradient(ellipse 38% 3px at 50% 18%, rgba(255,70,90,0.18) 0%, transparent 100%),
+        radial-gradient(ellipse 30% 3px at 60% 80%, rgba(255,70,90,0.22) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* القزحية — دائرة ملونة تدور */
+    .iris {
+      position: absolute;
+      width: 52%;
+      height: 52%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: conic-gradient(
+        #ff3cac 0deg, #ff80cc 30deg,
+        #784ba0 60deg, #a070d8 90deg,
+        #2b86c5 120deg, #60b0ff 150deg,
+        #00f5d4 180deg, #40ffea 210deg,
+        #ff3cac 240deg, #ff80cc 270deg,
+        #784ba0 300deg, #2b86c5 330deg,
+        #ff3cac 360deg
+      );
+      box-shadow:
+        0 0 14px rgba(255,60,172,0.7),
+        0 0 28px rgba(43,134,197,0.4),
+        inset 0 0 10px rgba(0,0,0,0.4);
+      animation: iris-rotate 6s linear infinite;
+      z-index: 1;
+    }
+    @keyframes iris-rotate {
+      from { transform: translate(-50%,-50%) rotate(0deg); }
+      to   { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+
+    /* طبقة داكنة فوق القزحية لتليينها */
+    .iris::after {
+      content: '';
+      position: absolute; inset: 18%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(10,5,30,0.85) 0%, rgba(20,10,50,0.5) 60%, transparent 100%);
+    }
+
+    /* البؤبؤ — يتحرك مع الماوس */
+    .pupil-wrap {
+      position: absolute;
+      width: 52%; height: 52%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      z-index: 2;
+      transition: transform 0.07s linear;
+      will-change: transform;
+    }
+
+    .pupil {
+      position: absolute;
+      width: 44%; height: 44%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 30%,
+        #2a1050 0%, #0d0620 45%, #000 100%
+      );
+      box-shadow:
+        0 0 8px rgba(0,0,0,1),
+        inset 0 0 6px rgba(0,0,0,1);
+      z-index: 2;
+    }
+
+    /* نقطة الضوء الرئيسية */
+    .pupil::before {
+      content: '';
+      position: absolute;
+      width: 32%; height: 32%;
+      top: 14%; left: 20%;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255,255,255,0.95) 0%,
+        rgba(200,180,255,0.65) 55%,
+        transparent 100%
+      );
+      filter: blur(0.5px);
+    }
+
+    /* نقطة ضوء ثانوية (لون accent4) */
+    .pupil::after {
+      content: '';
+      position: absolute;
+      width: 16%; height: 16%;
+      bottom: 20%; right: 18%;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(0,245,212,0.8) 0%,
+        transparent 100%
+      );
+      filter: blur(0.5px);
+    }
+
+    /* ستارة علوية وسفلية تحاكي الجفن */
+    .eyelid-top, .eyelid-bottom {
+      position: absolute;
+      width: 112%; left: -6%;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .eyelid-top {
+      height: 56%; top: -5%;
+      background: radial-gradient(ellipse at 50% 10%,
+        rgba(6,6,18,1) 0%,
+        rgba(6,6,18,0.7) 50%,
+        transparent 100%
+      );
+    }
+    .eyelid-bottom {
+      height: 56%; bottom: -5%;
+      background: radial-gradient(ellipse at 50% 90%,
+        rgba(6,6,18,0.95) 0%,
+        rgba(6,6,18,0.6) 50%,
+        transparent 100%
+      );
+    }
+
+    /* ═══════════════════════════════════════ */
+
+    /* ── Card ── */
     .card {
       position: relative; z-index: 10;
       width: 440px;
@@ -86,290 +269,181 @@
       backdrop-filter: blur(24px);
       animation: cardIn 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
     }
-
     @keyframes cardIn {
-      from { opacity: 0; transform: translateY(40px) scale(0.95); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
+      from { opacity:0; transform:translateY(40px) scale(0.95); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
     }
-
     .card::before, .card::after {
-      content: '';
-      position: absolute;
-      width: 60px; height: 60px;
-      border-radius: 4px;
+      content:''; position:absolute; width:60px; height:60px;
     }
     .card::before {
-      top: -1px; left: -1px;
-      border-top: 2px solid var(--accent1);
-      border-left: 2px solid var(--accent1);
-      border-radius: 24px 0 0 0;
+      top:-1px; left:-1px;
+      border-top:2px solid var(--accent1);
+      border-left:2px solid var(--accent1);
+      border-radius:24px 0 0 0;
     }
     .card::after {
-      bottom: -1px; right: -1px;
-      border-bottom: 2px solid var(--accent4);
-      border-right: 2px solid var(--accent4);
-      border-radius: 0 0 24px 0;
+      bottom:-1px; right:-1px;
+      border-bottom:2px solid var(--accent4);
+      border-right:2px solid var(--accent4);
+      border-radius:0 0 24px 0;
     }
 
-    .logo-row {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 8px;
-    }
+    .logo-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
     .logo-icon {
-      width: 42px; height: 42px;
-      background: linear-gradient(135deg, var(--accent1), var(--accent2));
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 4px 20px rgba(255,60,172,0.4);
-      animation: pulse-logo 3s ease-in-out infinite;
+      width:42px; height:42px;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px;
+      box-shadow:0 4px 20px rgba(255,60,172,0.4);
+      animation:pulse-logo 3s ease-in-out infinite;
     }
     @keyframes pulse-logo {
-      0%,100% { box-shadow: 0 4px 20px rgba(255,60,172,0.4); }
-      50%      { box-shadow: 0 4px 32px rgba(255,60,172,0.7); }
+      0%,100% { box-shadow:0 4px 20px rgba(255,60,172,0.4); }
+      50%      { box-shadow:0 4px 32px rgba(255,60,172,0.7); }
     }
-
     h2 {
-      font-family: 'Syne', sans-serif;
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(90deg, var(--accent1), #b06ce4, var(--accent3));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-family:'Syne',sans-serif; font-size:28px; font-weight:800; letter-spacing:-0.5px;
+      background:linear-gradient(90deg,var(--accent1),#b06ce4,var(--accent3));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
     }
-
     .subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 32px;
+      font-size:12px; color:var(--muted); letter-spacing:0.08em;
+      text-transform:uppercase; margin-bottom:32px;
     }
-
     .divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--border), transparent);
-      margin: 0 -40px 28px;
+      height:1px;
+      background:linear-gradient(90deg,transparent,var(--border),transparent);
+      margin:0 -40px 28px;
     }
 
+    /* ── Tabs ── */
     .tabs {
-      display: flex;
-      background: rgba(255,255,255,0.04);
-      border-radius: 12px;
-      padding: 4px;
-      margin-bottom: 28px;
-      border: 1px solid var(--border);
+      display:flex; background:rgba(255,255,255,0.04);
+      border-radius:12px; padding:4px; margin-bottom:28px; border:1px solid var(--border);
     }
     .tab-btn {
-      flex: 1;
-      padding: 9px;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      border-radius: 9px;
-      transition: all 0.25s;
+      flex:1; padding:9px; border:none; background:transparent; color:var(--muted);
+      font-family:'DM Mono',monospace; font-size:13px; font-weight:500;
+      letter-spacing:0.05em; cursor:pointer; border-radius:9px; transition:all 0.25s;
     }
     .tab-btn.active {
-      background: linear-gradient(135deg, var(--accent1), var(--accent2));
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(255,60,172,0.35);
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      color:#fff; box-shadow:0 4px 14px rgba(255,60,172,0.35);
     }
 
-    .field {
-      margin-bottom: 18px;
-      position: relative;
-    }
+    /* ── Fields ── */
+    .field { margin-bottom:18px; position:relative; }
     .field label {
-      display: block;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
+      display:block; font-size:11px; letter-spacing:0.1em;
+      text-transform:uppercase; color:var(--muted); margin-bottom:8px;
     }
-    .field-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
+    .field-wrap { position:relative; display:flex; align-items:center; }
     .field-icon {
-      position: absolute;
-      left: 14px;
-      font-size: 15px;
-      opacity: 0.5;
-      pointer-events: none;
-      transition: opacity 0.2s;
+      position:absolute; left:14px; font-size:15px;
+      opacity:0.5; pointer-events:none; transition:opacity 0.2s;
     }
     .field input {
-      width: 100%;
-      padding: 13px 16px 13px 42px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      font-size: 14px;
-      outline: none;
-      transition: all 0.25s;
+      width:100%; padding:13px 16px 13px 42px;
+      background:rgba(255,255,255,0.04); border:1px solid var(--border);
+      border-radius:12px; color:var(--text); font-family:'DM Mono',monospace;
+      font-size:14px; outline:none; transition:all 0.25s;
     }
-    .field input::placeholder { color: rgba(136,128,170,0.5); }
+    .field input::placeholder { color:rgba(136,128,170,0.5); }
     .field input:focus {
-      background: rgba(255,255,255,0.07);
-      border-color: var(--accent1);
-      box-shadow: 0 0 0 3px rgba(255,60,172,0.12), 0 0 20px rgba(255,60,172,0.08);
+      background:rgba(255,255,255,0.07); border-color:var(--accent1);
+      box-shadow:0 0 0 3px rgba(255,60,172,0.12),0 0 20px rgba(255,60,172,0.08);
     }
-    .field-wrap:focus-within .field-icon { opacity: 1; }
+    .field-wrap:focus-within .field-icon { opacity:1; }
 
-    .btn-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
+    /* ── Buttons ── */
+    .btn-row { display:flex; gap:12px; margin-bottom:20px; }
     button {
-      cursor: pointer;
-      font-family: 'DM Mono', monospace;
-      font-weight: 500;
-      letter-spacing: 0.05em;
-      border: none;
-      border-radius: 12px;
-      transition: all 0.22s;
+      cursor:pointer; font-family:'DM Mono',monospace; font-weight:500;
+      letter-spacing:0.05em; border:none; border-radius:12px; transition:all 0.22s;
     }
     .btn-primary {
-      flex: 1;
-      padding: 13px;
-      background: linear-gradient(135deg, var(--accent1), var(--accent2), var(--accent3));
-      background-size: 200% 200%;
-      color: #fff;
-      font-size: 14px;
-      box-shadow: 0 6px 24px rgba(255,60,172,0.3);
-      animation: grad-shift 4s ease infinite;
-      position: relative;
-      overflow: hidden;
+      flex:1; padding:13px;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2),var(--accent3));
+      background-size:200% 200%; color:#fff; font-size:14px;
+      box-shadow:0 6px 24px rgba(255,60,172,0.3);
+      animation:grad-shift 4s ease infinite; position:relative; overflow:hidden;
     }
     .btn-primary::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-      opacity: 0;
-      transition: opacity 0.2s;
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+      opacity:0; transition:opacity 0.2s;
     }
-    .btn-primary:hover::after { opacity: 1; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,60,172,0.45); }
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
+    .btn-primary:hover::after { opacity:1; }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(255,60,172,0.45); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
     @keyframes grad-shift {
-      0%,100% { background-position: 0% 50%; }
-      50%      { background-position: 100% 50%; }
+      0%,100% { background-position:0% 50%; }
+      50%      { background-position:100% 50%; }
     }
 
-    .token-section { margin-bottom: 16px; }
+    /* ── Token ── */
+    .token-section { margin-bottom:16px; }
     .token-label {
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;
     }
     .token-dot {
-      width: 6px; height: 6px;
-      background: var(--accent4);
-      border-radius: 50%;
-      animation: blink 2s ease-in-out infinite;
+      width:6px; height:6px; background:var(--accent4);
+      border-radius:50%; animation:blink 2s ease-in-out infinite;
     }
     @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
-
     textarea {
-      width: 100%;
-      padding: 12px 14px;
-      background: rgba(0,0,0,0.4);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--accent4);
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      line-height: 1.6;
-      resize: none;
-      outline: none;
-      transition: border-color 0.2s;
-      scrollbar-width: thin;
-      scrollbar-color: var(--accent2) transparent;
+      width:100%; padding:12px 14px; background:rgba(0,0,0,0.4);
+      border:1px solid var(--border); border-radius:12px; color:var(--accent4);
+      font-family:'DM Mono',monospace; font-size:11px; line-height:1.6;
+      resize:none; outline:none; transition:border-color 0.2s;
+      scrollbar-width:thin; scrollbar-color:var(--accent2) transparent;
     }
-    textarea:focus { border-color: var(--accent4); }
-    textarea::placeholder { color: rgba(0,245,212,0.25); }
+    textarea:focus { border-color:var(--accent4); }
+    textarea::placeholder { color:rgba(0,245,212,0.25); }
 
+    /* ── API Button ── */
     .btn-api {
-      width: 100%;
-      padding: 13px;
-      background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(43,134,197,0.15));
-      border: 1px solid rgba(0,245,212,0.35);
-      color: var(--accent4);
-      font-size: 14px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      width:100%; padding:13px;
+      background:linear-gradient(135deg,rgba(0,245,212,0.15),rgba(43,134,197,0.15));
+      border:1px solid rgba(0,245,212,0.35); color:var(--accent4);
+      font-size:14px; margin-bottom:20px;
+      display:flex; align-items:center; justify-content:center; gap:8px;
     }
     .btn-api:hover {
-      background: linear-gradient(135deg, rgba(0,245,212,0.25), rgba(43,134,197,0.25));
-      box-shadow: 0 0 20px rgba(0,245,212,0.2);
-      transform: translateY(-2px);
+      background:linear-gradient(135deg,rgba(0,245,212,0.25),rgba(43,134,197,0.25));
+      box-shadow:0 0 20px rgba(0,245,212,0.2); transform:translateY(-2px);
     }
-    .arrow { font-size: 16px; transition: transform 0.2s; }
-    .btn-api:hover .arrow { transform: translateX(4px); }
+    .arrow { font-size:16px; transition:transform 0.2s; }
+    .btn-api:hover .arrow { transform:translateX(4px); }
 
     #msg {
-      font-size: 12px;
-      letter-spacing: 0.03em;
-      min-height: 18px;
-      text-align: center;
-      padding: 0 4px;
-      transition: all 0.3s;
+      font-size:12px; letter-spacing:0.03em; min-height:18px;
+      text-align:center; padding:0 4px; transition:all 0.3s;
     }
-    #msg.success { color: var(--accent4); }
-    #msg.error   { color: var(--accent1); }
-    #msg.loading { color: var(--muted); }
+    #msg.success { color:var(--accent4); }
+    #msg.error   { color:var(--accent1); }
+    #msg.loading { color:var(--muted); }
 
     .footer {
-      margin-top: 24px;
-      text-align: center;
-      font-size: 11px;
-      color: rgba(136,128,170,0.4);
-      letter-spacing: 0.08em;
+      margin-top:24px; text-align:center; font-size:11px;
+      color:rgba(136,128,170,0.4); letter-spacing:0.08em;
     }
 
-    .particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+    /* ── Particles ── */
+    .particles { position:fixed; inset:0; z-index:1; pointer-events:none; }
     .particle {
-      position: absolute;
-      width: 2px; height: 2px;
-      border-radius: 50%;
-      background: var(--accent1);
-      animation: float-up linear infinite;
-      opacity: 0;
+      position:absolute; width:2px; height:2px; border-radius:50%;
+      background:var(--accent1); animation:float-up linear infinite; opacity:0;
     }
     @keyframes float-up {
-      0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
-      10%  { opacity: 0.6; }
-      90%  { opacity: 0.3; }
-      100% { transform: translateY(-100px) translateX(60px); opacity: 0; }
+      0%   { transform:translateY(100vh) translateX(0); opacity:0; }
+      10%  { opacity:0.6; }
+      90%  { opacity:0.3; }
+      100% { transform:translateY(-100px) translateX(60px); opacity:0; }
     }
-
-    /* Token section مخفية في Sign Up */
-    .login-only { display: block; }
   </style>
 </head>
 
@@ -393,6 +467,21 @@
 
   <div class="divider"></div>
 
+  <!-- 👁 العين ثلاثية الأبعاد — فوق التابز مباشرة -->
+  <div class="eye-container">
+    <div class="eye-wrap">
+      <div class="eyeball" id="eyeball">
+        <div class="iris"></div>
+        <div class="pupil-wrap" id="pupilWrap">
+          <div class="pupil"></div>
+        </div>
+        <div class="eyelid-top"></div>
+        <div class="eyelid-bottom"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- التابز -->
   <div class="tabs">
     <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Login</button>
     <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
@@ -419,7 +508,7 @@
   </div>
 
   <!-- Token — بتظهر بس في Login -->
-  <div class="token-section login-only" id="token-section">
+  <div class="token-section" id="token-section">
     <div class="token-label">
       <span class="token-dot"></span>
       Access Token
@@ -427,7 +516,7 @@
     <textarea id="tokenBox" rows="4" placeholder="Your JWT token will appear here after login..."></textarea>
   </div>
 
-  <button class="btn-api login-only" id="api-btn" onclick="goDocs()">
+  <button class="btn-api" id="api-btn" onclick="goDocs()">
     <span>Open API Docs</span>
     <span class="arrow">→</span>
   </button>
@@ -438,14 +527,54 @@
 </div>
 
 <script>
-  // ========================================================
-  // ⚙️ غيّر الـ URL لو السيرفر بتاعك على port مختلف
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     👁  Eye follows mouse — 3D parallax effect
+  ══════════════════════════════════════════════ */
+  const eyeball   = document.getElementById('eyeball');
+  const pupilWrap = document.getElementById('pupilWrap');
+
+  // الحد الأقصى للحركة داخل العين (بالـ %)
+  const MAX_MOVE = 18;
+
+  document.addEventListener('mousemove', (e) => {
+    const rect   = eyeball.getBoundingClientRect();
+    const eyeCX  = rect.left + rect.width  / 2;
+    const eyeCY  = rect.top  + rect.height / 2;
+
+    // الزاوية والمسافة
+    const dx    = e.clientX - eyeCX;
+    const dy    = e.clientY - eyeCY;
+    const dist  = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+
+    // كلما بعد الماوس كلما تحرك البؤبؤ أكثر — لكن بحد أقصى
+    const maxDist   = Math.max(window.innerWidth, window.innerHeight) * 0.5;
+    const intensity = Math.min(dist / maxDist, 1);
+    const moveX     = Math.cos(angle) * MAX_MOVE * intensity;
+    const moveY     = Math.sin(angle) * MAX_MOVE * intensity;
+
+    pupilWrap.style.transform = `translate(calc(-50% + ${moveX}%), calc(-50% + ${moveY}%))`;
+
+    // تأثير ثلاثي الأبعاد خفيف على الكرة نفسها (parallax)
+    const tiltX = (moveY * 0.12).toFixed(2);
+    const tiltY = (moveX * -0.12).toFixed(2);
+    eyeball.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+  });
+
+  // لما الماوس يخرج من الشاشة — العين ترجع للوسط
+  document.addEventListener('mouseleave', () => {
+    pupilWrap.style.transform = 'translate(-50%, -50%)';
+    eyeball.style.transform   = 'rotateX(0deg) rotateY(0deg)';
+  });
+
+  /* ══════════════════════════════════════════════
+     ⚙️  API Base
+  ══════════════════════════════════════════════ */
   const API_BASE = "http://127.0.0.1:8001";
 
-  // ========================================================
-  // 🔥 Firebase Config
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     🔥  Firebase
+  ══════════════════════════════════════════════ */
   const firebaseConfig = {
     apiKey: "AIzaSyBTi0hycT_nCgThOoLDLDfXhCuLWeKcPMU",
     authDomain: "sales-forecasting-75f26.firebaseapp.com"
@@ -453,9 +582,9 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
 
-  // ========================================================
-  // Tab Logic
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     Tab Logic
+  ══════════════════════════════════════════════ */
   let currentTab = 'login';
 
   function switchTab(tab) {
@@ -465,29 +594,28 @@
     const mainBtn   = document.getElementById('main-btn');
     const tokenSec  = document.getElementById('token-section');
     const apiBtn    = document.getElementById('api-btn');
-
     setMsg('');
 
     if (tab === 'login') {
       loginBtn.classList.add('active');
       signupBtn.classList.remove('active');
-      mainBtn.textContent  = 'Login →';
-      mainBtn.onclick      = login;
-      tokenSec.style.display = 'block';
-      apiBtn.style.display   = 'flex';
+      mainBtn.textContent        = 'Login →';
+      mainBtn.onclick            = login;
+      tokenSec.style.display     = 'block';
+      apiBtn.style.display       = 'flex';
     } else {
       signupBtn.classList.add('active');
       loginBtn.classList.remove('active');
-      mainBtn.textContent  = 'Create Account →';
-      mainBtn.onclick      = signup;
-      tokenSec.style.display = 'none';   // مش محتاج token في Sign Up
-      apiBtn.style.display   = 'none';
+      mainBtn.textContent        = 'Create Account →';
+      mainBtn.onclick            = signup;
+      tokenSec.style.display     = 'none';
+      apiBtn.style.display       = 'none';
     }
   }
 
-  // ========================================================
-  // Particles
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     Particles
+  ══════════════════════════════════════════════ */
   const colors    = ['#ff3cac','#00f5d4','#2b86c5','#784ba0','#fff'];
   const container = document.getElementById('particles');
   for (let i = 0; i < 30; i++) {
@@ -501,13 +629,13 @@
     container.appendChild(p);
   }
 
-  // ========================================================
-  // Helpers
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     Helpers
+  ══════════════════════════════════════════════ */
   function setMsg(text, type = '') {
     const el = document.getElementById('msg');
-    el.className  = type;
-    el.innerText  = text;
+    el.className = type;
+    el.innerText = text;
   }
 
   function setLoading(state) {
@@ -518,9 +646,9 @@
       : (currentTab === 'login' ? 'Login →' : 'Create Account →');
   }
 
-  // ========================================================
-  // 🗄️ حفظ اليوزر في MySQL عبر الـ Endpoint المخفي
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     🗄️  Save to MySQL
+  ══════════════════════════════════════════════ */
   async function saveUserToDB(uid, email, displayName = null) {
     try {
       const res = await fetch(`${API_BASE}/internal/register-user`, {
@@ -528,40 +656,26 @@
         headers: { 'Content-Type': 'application/json' },
         body   : JSON.stringify({ uid, email, display_name: displayName }),
       });
-      if (!res.ok) {
-        console.warn('DB registration warning:', await res.text());
-      }
+      if (!res.ok) console.warn('DB warning:', await res.text());
     } catch (err) {
-      // مش بنوقف الـ sign up لو DB فشل — بس بنسجّل في console
       console.error('DB save failed:', err);
     }
   }
 
-  // ========================================================
-  // ✅ Sign Up
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     ✅  Sign Up
+  ══════════════════════════════════════════════ */
   async function signup() {
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-
-    if (!email || !password) {
-      setMsg('❌ Please fill in all fields', 'error');
-      return;
-    }
+    if (!email || !password) { setMsg('❌ Please fill in all fields', 'error'); return; }
 
     setLoading(true);
     setMsg('Creating account...', 'loading');
-
     try {
-      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-      const user = userCredential.user;
-
-      // 1️⃣ إرسال إيميل التحقق
-      await user.sendEmailVerification();
-
-      // 2️⃣ حفظ اليوزر في MySQL تلقائياً (مخفي عن اليوزر)
-      await saveUserToDB(user.uid, user.email, user.displayName);
-
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      await cred.user.sendEmailVerification();
+      await saveUserToDB(cred.user.uid, cred.user.email, cred.user.displayName);
       setMsg('📩 Account created! Check your email to verify.', 'success');
     } catch (err) {
       setMsg('❌ ' + err.message, 'error');
@@ -570,32 +684,24 @@
     }
   }
 
-  // ========================================================
-  // 🔐 Login
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     🔐  Login
+  ══════════════════════════════════════════════ */
   async function login() {
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-
-    if (!email || !password) {
-      setMsg('❌ Please fill in all fields', 'error');
-      return;
-    }
+    if (!email || !password) { setMsg('❌ Please fill in all fields', 'error'); return; }
 
     setLoading(true);
     setMsg('Signing in...', 'loading');
-
     try {
-      const userCredential = await auth.signInWithEmailAndPassword(email, password);
-      const user = userCredential.user;
-
-      if (!user.emailVerified) {
+      const cred = await auth.signInWithEmailAndPassword(email, password);
+      if (!cred.user.emailVerified) {
         setMsg('❌ Please verify your email first', 'error');
         setLoading(false);
         return;
       }
-
-      const token = await user.getIdToken();
+      const token = await cred.user.getIdToken();
       document.getElementById('tokenBox').value = token;
       localStorage.setItem('token', token);
       setMsg('✅ Login successful — token ready', 'success');
@@ -606,11 +712,11 @@
     }
   }
 
-  // ========================================================
-  // Open API Docs
-  // ========================================================
+  /* ══════════════════════════════════════════════
+     Open API Docs
+  ══════════════════════════════════════════════ */
   function goDocs() {
-    window.location.href = `${API_BASE}/docs`;
+    window.location.href = `http://127.0.0.1:8000/docs`;
   }
 </script>
 

@@ -3,18 +3,15 @@ import joblib
 import numpy as np
 import pandas as pd
 from datetime import datetime
-
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.security import HTTPBearer
 from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import BaseModel
-
 # 🔐 Firebase
 import firebase_admin
 from firebase_admin import credentials, auth
-
 # 🗄️ MySQL
 from sqlalchemy import create_engine, Column, String, DateTime, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
@@ -22,7 +19,6 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 # =============================================================================
 # ⚙️  DATABASE SETUP
 # =============================================================================
-# 👇 غيّر YOUR_PASSWORD واسم الـ database حسب MySQL Workbench عندك
 DATABASE_URL = "mysql+pymysql://root:ahmed2628@localhost:3305/sales_forecast_db"
 
 engine      = create_engine(DATABASE_URL, pool_pre_ping=True)
