@@ -12,30 +12,17 @@ from pydantic import BaseModel
 # 🔐 Firebase
 import firebase_admin
 from firebase_admin import credentials, auth
+from firebase_admin import credentials
+import streamlit as st
 # 🗄️ MySQL
 from sqlalchemy import create_engine, Column, String, DateTime, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
-
-# =============================================================================
-# ⚙️  DATABASE SETUP
-# =============================================================================
-
-
-
-# =============================================================================
-# 🗂️  جدول users
-
-
-
-# =============================================================================
-# 🔁  DB Dependency
-# =============================================================================
 
 
 # =============================================================================
 # 🔥  INIT FIREBASE
 # =============================================================================
-cred = credentials.Certificate(r"c:\Users\Ahmed\Desktop\firebase_key.json")
+cred = credentials.Certificate(st.secrets["firebase"])
 firebase_admin.initialize_app(cred)
 
 security = HTTPBearer()
