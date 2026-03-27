@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Auth</title>
+  <title>Sales Forecasting Login</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -41,7 +41,7 @@
     .bg-canvas { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
     .orb {
       position: absolute; border-radius: 50%;
-      filter: blur(80px); opacity: 0.55;
+      filter: blur(10px); opacity: 0.55;
       animation: drift 12s ease-in-out infinite alternate;
     }
     .orb-1 { width:500px;height:500px;background:radial-gradient(circle,#ff3cac,transparent 70%);top:-15%;left:-10%;animation-delay:0s; }
@@ -499,27 +499,28 @@
     <label>Password</label>
     <div class="field-wrap">
       <input id="password" type="password" placeholder="••••••••••">
-      <span class="field-icon">🔑</span>
+      <span class="field-icon" style="left:14px;">🔑</span>
+      <span class="field-icon" style="right:14px; left:auto; cursor:pointer; pointer-events:auto;" onclick="togglePassword()">👁</span>
     </div>
   </div>
+
+<div class="field" id="confirm-field" style="display:none;">
+  <label>Confirm Password</label>
+  <div class="field-wrap">
+    <input id="confirm-password" type="password" placeholder="••••••••••">
+    <span class="field-icon" style="left:14px;">🔑</span>
+    <span class="field-icon" style="right:14px; left:auto; cursor:pointer; pointer-events:auto;" onclick="toggleConfirm()">👁</span>
+  </div>
+</div>
 
   <div class="btn-row" id="btn-row">
     <button class="btn-primary" id="main-btn" onclick="login()">Login →</button>
   </div>
 
-  <!-- Token — بتظهر بس في Login -->
-  <div class="token-section" id="token-section">
-    <div class="token-label">
-      <span class="token-dot"></span>
-      Access Token
-    </div>
-    <textarea id="tokenBox" rows="4" placeholder="Your JWT token will appear here after login..."></textarea>
-  </div>
-
-  <button class="btn-api" id="api-btn" onclick="goDocs()">
-    <span>Open API Docs</span>
-    <span class="arrow">→</span>
-  </button>
+  <!-- Token hidden — مخزن في localStorage أوتوماتيك ومش محتاج يظهر -->
+  <textarea id="tokenBox" style="display:none;"></textarea>
+  <div id="token-section" style="display:none;"></div>
+  <button id="api-btn" style="display:none;"></button>
 
   <p id="msg"></p>
 
@@ -594,6 +595,7 @@
     const mainBtn   = document.getElementById('main-btn');
     const tokenSec  = document.getElementById('token-section');
     const apiBtn    = document.getElementById('api-btn');
+    const confirmField = document.getElementById('confirm-field');
     setMsg('');
 
     if (tab === 'login') {
@@ -603,6 +605,7 @@
       mainBtn.onclick            = login;
       tokenSec.style.display     = 'block';
       apiBtn.style.display       = 'flex';
+      confirmField.style.display = 'none';
     } else {
       signupBtn.classList.add('active');
       loginBtn.classList.remove('active');
@@ -610,6 +613,7 @@
       mainBtn.onclick            = signup;
       tokenSec.style.display     = 'none';
       apiBtn.style.display       = 'none';
+      confirmField.style.display = 'block';
     }
   }
 
@@ -668,7 +672,12 @@
   async function signup() {
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    if (!email || !password) { setMsg('❌ Please fill in all fields', 'error'); return; }
+    const confirm  = document.getElementById('confirm-password').value;
+    if (!email || !password || !confirm) { setMsg('❌ Please fill in all fields', 'error'); return; }
+    if (password !== confirm) {
+      setMsg('❌ Passwords do not match', 'error');
+      return;
+}
 
     setLoading(true);
     setMsg('Creating account...', 'loading');
@@ -702,9 +711,23 @@
         return;
       }
       const token = await cred.user.getIdToken();
-      document.getElementById('tokenBox').value = token;
+
+      // 1 - حفظ في localStorage عشان Swagger يقراه أوتوماتيك
       localStorage.setItem('token', token);
-      setMsg('✅ Login successful — token ready', 'success');
+
+      // 2 - عرضه في الـ textarea
+      document.getElementById('tokenBox').value = token;
+
+      // 3 - كوبي أوتوماتيك للـ clipboard
+      try { await navigator.clipboard.writeText(token); } catch (_) {}
+
+      // 4 - رسالة
+      setMsg('Logged in — opening API...', 'success');
+
+      // 5 - بعد ثانية يفتح Swagger وهيلاقي التوكين جاهز أوتوماتيك
+      setTimeout(() => {
+        window.location.href = `http://127.0.0.1:8000/docs`;
+      }, 900);
     } catch (err) {
       setMsg('❌ ' + err.message, 'error');
     } finally {
@@ -712,12 +735,17 @@
     }
   }
 
-  /* ══════════════════════════════════════════════
-     Open API Docs
-  ══════════════════════════════════════════════ */
-  function goDocs() {
-    window.location.href = `http://127.0.0.1:8000/docs`;
-  }
+function togglePassword() {
+  const input = document.getElementById('password');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function toggleConfirm() {
+  const input = document.getElementById('confirm-password');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+
 </script>
 
 </body>

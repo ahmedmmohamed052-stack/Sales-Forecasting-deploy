@@ -102,18 +102,66 @@ async def custom_docs():
         title="My API"
     ).body.decode("utf-8")
 
-    custom_js = """
-    <script>
-    window.onload = function() {
-        const token = localStorage.getItem("token");
-        if (token) {
-            const ui = window.ui;
-            ui.preauthorizeApiKey("Bearer", "Bearer " + token);
-        }
-    }
-    </script>
-    """
-    html = html.replace("</body>", custom_js + "</body>")
+    # ══════════════════════════════════════════════════════
+    # الحل النهائي: نعمل wrap للـ SwaggerUIBundle قبل الـ init
+    # بنحط السكريبت قبل "<script>" اللي فيه "const ui = SwaggerUIBundle"
+    # ══════════════════════════════════════════════════════
+
+    wrap_script = """<script>
+(function(){
+    var t = localStorage.getItem("token");
+    if(!t) return;
+
+    // بنستنى SwaggerUIBundle يتحمّل من الـ CDN
+    var waitForBundle = setInterval(function(){
+        if(typeof SwaggerUIBundle === "undefined") return;
+        clearInterval(waitForBundle);
+
+        // نعمل wrap
+        var _Orig = SwaggerUIBundle;
+        window.SwaggerUIBundle = function(cfg){
+
+            // ① requestInterceptor — مضمون 100%
+            // كل request من Swagger هيكون فيه Authorization header
+            var _ri = cfg.requestInterceptor;
+            cfg.requestInterceptor = function(req){
+                req.headers["Authorization"] = "Bearer " + t;
+                return _ri ? _ri(req) : req;
+            };
+
+            // ② onComplete — يعمل authorize في الـ UI لما يخلص
+            var _oc = cfg.onComplete;
+            cfg.onComplete = function(){
+                try {
+                    window.ui.authActions.authorize({
+                        HTTPBearer:{
+                            name:"HTTPBearer",
+                            value:t,
+                            schema:{type:"http",scheme:"bearer"}
+                        }
+                    });
+                    console.log("✅ Swagger auto-authorized");
+                } catch(e){ console.warn("authorize err:", e); }
+                if(_oc) _oc();
+            };
+
+            var instance = _Orig(cfg);
+            window.ui = instance;
+            return instance;
+        };
+        // نحافظ على كل properties الأصلية (presets, plugins, etc.)
+        Object.keys(_Orig).forEach(function(k){
+            try{ window.SwaggerUIBundle[k] = _Orig[k]; }catch(e){}
+        });
+
+    }, 30);  // بيفحص كل 30ms لحد ما SwaggerUIBundle يتعرّف
+})();
+</script>"""
+
+    # نحط الـ wrap script مباشرة قبل آخر <script> في الـ HTML
+    # (اللي هو الـ init script اللي فيه SwaggerUIBundle call)
+    last_script_pos = html.rfind("<script>")
+    html = html[:last_script_pos] + wrap_script + "\n" + html[last_script_pos:]
     return HTMLResponse(html)
 
 
