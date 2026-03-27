@@ -3,7 +3,7 @@ fastapi
 uvicorn
 pandas
 numpy
-scikit-learn
+scikit-learn==1.7.0
 xgboost
 joblib
 firebase-admin
