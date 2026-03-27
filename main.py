@@ -19,38 +19,17 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 # =============================================================================
 # ⚙️  DATABASE SETUP
 # =============================================================================
-DATABASE_URL = "mysql+pymysql://root:ahmed2628@localhost:3305/sales_forecast_db"
 
-engine      = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base         = declarative_base()
 
 
 # =============================================================================
 # 🗂️  جدول users
-# =============================================================================
-class UserDB(Base):
-    __tablename__ = "users"
 
-    uid            = Column(String(128), primary_key=True, index=True)
-    email          = Column(String(255), unique=True, nullable=False)
-    display_name   = Column(String(255), nullable=True)
-    email_verified = Column(Boolean, default=False)
-    created_at     = Column(DateTime, default=datetime.utcnow)
-    last_login     = Column(DateTime, nullable=True)
-
-Base.metadata.create_all(bind=engine)   # بينشئ الجدول أوتوماتيك لو مش موجود
 
 
 # =============================================================================
 # 🔁  DB Dependency
 # =============================================================================
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # =============================================================================
@@ -168,36 +147,7 @@ async def custom_docs():
 # =============================================================================
 # ✅  REGISTER USER — مخفي تماماً عن Swagger
 # =============================================================================
-class RegisterRequest(BaseModel):
-    uid          : str
-    email        : str
-    display_name : str | None = None
 
-@app.post(
-    "/internal/register-user",   # ← /internal/ عشان واضح إنه مش للعموم
-    include_in_schema=False,     # ← مش هيظهر في Swagger خالص
-    status_code=201,
-)
-def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
-    """
-    بيتنادى من الـ HTML تلقائياً بعد Sign Up من Firebase.
-    اليوزر مش هيشوفه في Swagger.
-    """
-    # لو موجود قبل كده — مش هنضيف تاني
-    existing = db.query(UserDB).filter(UserDB.uid == payload.uid).first()
-    if existing:
-        return {"status": "exists", "uid": payload.uid}
-
-    new_user = UserDB(
-        uid          = payload.uid,
-        email        = payload.email,
-        display_name = payload.display_name,
-        created_at   = datetime.utcnow(),
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return {"status": "registered", "uid": new_user.uid}
 
 
 # =============================================================================
