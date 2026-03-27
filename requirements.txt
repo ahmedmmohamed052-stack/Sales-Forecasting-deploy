@@ -9,3 +9,4 @@ joblib
 firebase-admin
 sqlalchemy
 pymysql
+python-multipart
