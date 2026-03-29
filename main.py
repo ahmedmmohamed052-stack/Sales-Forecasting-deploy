@@ -13,7 +13,6 @@ from pydantic import BaseModel
 import firebase_admin
 from firebase_admin import credentials, auth
 from firebase_admin import credentials
-import streamlit as st
 import firebase_admin
 from firebase_admin import credentials
 # 🗄️ MySQL
@@ -24,12 +23,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 # =============================================================================
 # 🔥  INIT FIREBASE
 # =============================================================================
-if not firebase_admin._apps:
-    firebase_dict = dict(st.secrets["firebase"])
-    firebase_dict["private_key"] = firebase_dict["private_key"].replace("\\n", "\n")
+cred = credentials.Certificate(r"c:\Users\Ahmed\Desktop\firebase_key.json")
+firebase_admin.initialize_app(cred)
 
-    cred = credentials.Certificate(firebase_dict)
-    firebase_admin.initialize_app(cred)
 
 security = HTTPBearer()
 

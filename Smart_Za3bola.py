@@ -293,7 +293,7 @@ print("Model saved successfully")
 
 dff = pd.read_excel('future_predictions.xlsx')
 #print(future_predictions_df)
-'FINAL METRICS'
+
 
 # مجموع المبيعات لكل منتج
 product_sales = dff.groupby('product_id')['prediction'].sum().sort_values(ascending=False)
