@@ -145,8 +145,6 @@ tr:last-child td{border-bottom:none;}
 tr:hover td{background:rgba(124,58,255,.04);}
 .btn-dl{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;cursor:pointer;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:var(--a4);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;transition:all .2s;margin-top:12px;}
 .btn-dl:hover{background:rgba(52,211,153,.18);}
-.btn-insights{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;cursor:pointer;background:rgba(124,58,255,.1);border:1px solid rgba(124,58,255,.3);color:var(--a1);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;transition:all .2s;margin-top:8px;}
-.btn-insights:hover{background:rgba(124,58,255,.2);}
 
 /* BOTTOM ROW */
 .bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;animation:fadeUp .6s cubic-bezier(.34,1.56,.64,1) .38s both;}
@@ -290,7 +288,6 @@ tr:hover td{background:rgba(124,58,255,.04);}
             <div class="result-body">
               <div class="tbl-wrap"><table id="fc-table"><thead></thead><tbody></tbody></table></div>
               <button class="btn-dl" onclick="downloadCSV()">⬇ Download CSV</button>
-              <button class="btn-insights" id="btn-insights" onclick="openInsights()" style="display:none;">📊 View Insights</button>
             </div>
           </div>
         </div>
@@ -350,9 +347,7 @@ auth.onAuthStateChanged(user => {
   if (_authHandled) return; // Firebase بيعمل re-fire أحياناً — نتجاهله
   _authHandled = true;
   document.getElementById("nav-email").textContent = user.email;
-  // لا تعمل auto-fetch عشان متعلقش لو السيرفر مشغول
-  // المستخدم يضغط Refresh Metrics لما يحتاج
-  setStatus('st-metrics','idle','📡','Click Refresh Metrics to load your model info.');
+  fetchMetrics();
 });
 
 // ── Fetch with timeout (10 seconds) ────────────────────────────────────────
@@ -475,14 +470,6 @@ async function doForecast() {
     tbody.innerHTML = rows.slice(1).map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join('');
     document.getElementById('res-fc').classList.add('on');
     setStatus('st-fc','success','✅',`Forecast complete — ${months}-month predictions ready.`);
-    // Save data for insights page
-    sessionStorage.setItem('insightsForecastCSV', lastCSV);
-    sessionStorage.setItem('insightsForecastMonths', months);
-    // Read historical CSV as text
-    const reader = new FileReader();
-    reader.onload = e => { sessionStorage.setItem('insightsHistoricalCSV', e.target.result); };
-    reader.readAsText(files.forecast);
-    document.getElementById('btn-insights').style.display = 'inline-flex';
   } catch(e) { setStatus('st-fc','error','❌',e.message); }
   setProg('pb-fc',false); btn.disabled=false;
 }
@@ -493,10 +480,6 @@ function downloadCSV() {
   a.href = URL.createObjectURL(new Blob([lastCSV],{type:'text/csv'}));
   a.download = `forecast_${(auth.currentUser?.email||'result').replace('@','_')}.csv`;
   a.click();
-}
-
-function openInsights() {
-  window.open('insights.html', '_blank');
 }
 
 // ── Metrics ────────────────────────────────────────────────────────────────

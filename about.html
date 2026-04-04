@@ -290,6 +290,54 @@
     .ic-tech   { background: rgba(240,171,252,0.12);border: 1px solid rgba(240,171,252,0.25); }
     .ic-limit  { background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.25); }
     .ic-start  { background: rgba(124,58,255,0.12); border: 1px solid rgba(124,58,255,0.25); }
+    .ic-biz    { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.25); }
+
+    /* ── SCENARIO CARDS ── */
+    .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width:580px) { .scenario-grid { grid-template-columns: 1fr; } }
+    .scenario-card {
+      padding: 18px; background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+      transition: border-color 0.3s, transform 0.3s; position: relative; overflow: hidden;
+    }
+    .scenario-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;opacity:0.7; }
+    .sc-green::before  { background: linear-gradient(90deg, var(--accent4), transparent); }
+    .sc-cyan::before   { background: linear-gradient(90deg, var(--accent2), transparent); }
+    .sc-purple::before { background: linear-gradient(90deg, var(--accent1), transparent); }
+    .sc-orange::before { background: linear-gradient(90deg, var(--accent5), transparent); }
+    .scenario-card:hover { border-color: rgba(52,211,153,0.2); transform: translateY(-2px); }
+    .sc-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; border-radius: 20px; font-size: 8px;
+      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .sc-tag-green  { background:rgba(52,211,153,0.1);  border:1px solid rgba(52,211,153,0.25);  color:var(--accent4); }
+    .sc-tag-cyan   { background:rgba(6,182,212,0.1);   border:1px solid rgba(6,182,212,0.25);   color:var(--accent2); }
+    .sc-tag-purple { background:rgba(124,58,255,0.1);  border:1px solid rgba(124,58,255,0.25);  color:var(--accent1); }
+    .sc-tag-orange { background:rgba(251,146,60,0.1);  border:1px solid rgba(251,146,60,0.25);  color:var(--accent5); }
+    .sc-title { font-size:12px; color:var(--text); font-weight:500; margin-bottom:6px; letter-spacing:0.04em; }
+    .sc-desc  { font-size:10.5px; color:var(--muted); line-height:1.7; }
+    .sc-result {
+      margin-top:10px; padding:8px 12px; border-radius:8px;
+      font-size:10px; display:flex; align-items:center; gap:6px;
+      background:rgba(52,211,153,0.06); border:1px solid rgba(52,211,153,0.15); color:var(--accent4);
+    }
+    .sc-result::before { content:'✓'; font-weight:700; }
+    .decision-row {
+      display:flex; align-items:center; gap:14px; padding:10px 14px; border-radius:10px;
+      background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); margin-bottom:6px; transition:border-color 0.2s;
+    }
+    .decision-row:hover { border-color:rgba(124,58,255,0.2); }
+    .decision-row:last-child { margin-bottom:0; }
+    .dr-icon { font-size:20px; flex-shrink:0; }
+    .dr-body { flex:1; }
+    .dr-title { font-size:11px; color:var(--text); margin-bottom:3px; letter-spacing:0.04em; }
+    .dr-desc  { font-size:10px; color:var(--muted); line-height:1.6; }
+    .dr-impact {
+      padding:3px 10px; border-radius:20px; font-size:8.5px; letter-spacing:0.1em;
+      text-transform:uppercase; flex-shrink:0;
+      background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25); color:var(--accent4);
+    }
 
     .section-title-block { display: flex; flex-direction: column; gap: 4px; }
     .section-title {
@@ -754,6 +802,113 @@
           <div class="info-text"><strong>Validated Accuracy</strong>Every model is evaluated against a naive baseline — you see exactly how much better ML is performing.</div>
         </div>
       </div>
+    </div>
+  </div>
+
+
+  <!-- 3b. BUSINESS IMPACT -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon ic-biz">💼</div>
+      <div class="section-title-block">
+        <div class="section-title">How It Helps Your Business</div>
+        <div class="section-badge badge-green">Business Impact</div>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.8;">
+        Whether you run a small shop or a growing e-commerce store, accurate sales forecasts
+        directly translate into <span style="color:var(--accent4)">smarter decisions</span>,
+        <span style="color:var(--accent2)">lower costs</span>, and
+        <span style="color:var(--accent3)">higher revenue</span>.
+        Here is how this platform creates real, measurable value for business owners.
+      </div>
+
+      <div class="divider-row"><div class="divider-line"></div><div class="divider-label">Decision Areas</div><div class="divider-line"></div></div>
+
+      <div>
+        <div class="decision-row">
+          <div class="dr-icon">📦</div>
+          <div class="dr-body">
+            <div class="dr-title">Inventory & Stock Management</div>
+            <div class="dr-desc">Know exactly how much stock to order next month — stop over-buying products that sit on shelves and stop under-buying products that sell out and lose you customers.</div>
+          </div>
+          <div class="dr-impact">↓ Waste</div>
+        </div>
+        <div class="decision-row">
+          <div class="dr-icon">💰</div>
+          <div class="dr-body">
+            <div class="dr-title">Pricing & Promotions</div>
+            <div class="dr-desc">If the forecast shows a product slowing down next month, launch a promotion before demand drops. If it shows growth, hold firm on price and maximize margin.</div>
+          </div>
+          <div class="dr-impact">↑ Revenue</div>
+        </div>
+        <div class="decision-row">
+          <div class="dr-icon">👷</div>
+          <div class="dr-body">
+            <div class="dr-title">Workforce & Shift Planning</div>
+            <div class="dr-desc">Busy months need more staff. Quiet months need less. Forecast your sales volume ahead of time to schedule your team efficiently and reduce overtime costs.</div>
+          </div>
+          <div class="dr-impact">↓ Cost</div>
+        </div>
+        <div class="decision-row">
+          <div class="dr-icon">🏦</div>
+          <div class="dr-body">
+            <div class="dr-title">Cash Flow & Budget Planning</div>
+            <div class="dr-desc">Predicted revenue for the next two months gives you a concrete basis for planning purchases, paying suppliers, and managing your business cash flow with confidence.</div>
+          </div>
+          <div class="dr-impact">↑ Stability</div>
+        </div>
+        <div class="decision-row">
+          <div class="dr-icon">🎯</div>
+          <div class="dr-body">
+            <div class="dr-title">Marketing Budget Allocation</div>
+            <div class="dr-desc">Spend your ads budget on the products that the model predicts will have the highest sales velocity — not based on gut feeling, but on data-driven predictions.</div>
+          </div>
+          <div class="dr-impact">↑ ROI</div>
+        </div>
+      </div>
+
+      <div class="divider-row"><div class="divider-line"></div><div class="divider-label">Real-World Scenarios</div><div class="divider-line"></div></div>
+
+      <div class="scenario-grid">
+        <div class="scenario-card sc-green">
+          <div class="sc-tag sc-tag-green">🏪 Retail Shop</div>
+          <div class="sc-title">Seasonal Product Planning</div>
+          <div class="sc-desc">A clothing store uploads 12 months of sales data. The model predicts which items will spike in the coming months, allowing the owner to reorder stock 4 weeks ahead of demand.</div>
+          <div class="sc-result">Avoided stockouts on 3 best-selling items</div>
+        </div>
+        <div class="scenario-card sc-cyan">
+          <div class="sc-tag sc-tag-cyan">🛒 E-Commerce</div>
+          <div class="sc-title">Cart Abandonment Insights</div>
+          <div class="sc-desc">An online store sees the model picking up on high cart-add but low purchase rates for certain products — a signal to run a targeted discount campaign before the next month.</div>
+          <div class="sc-result">Conversion rate improved with timely promotions</div>
+        </div>
+        <div class="scenario-card sc-purple">
+          <div class="sc-tag sc-tag-purple">🍕 Food & Beverage</div>
+          <div class="sc-title">Ingredient Ordering</div>
+          <div class="sc-desc">A restaurant chain forecasts meals sold per branch next month, reducing food waste by ordering ingredients in proportion to predicted demand rather than fixed weekly orders.</div>
+          <div class="sc-result">Food waste reduced, supplier orders optimized</div>
+        </div>
+        <div class="scenario-card sc-orange">
+          <div class="sc-tag sc-tag-orange">🏗️ Wholesale</div>
+          <div class="sc-title">Supplier Negotiations</div>
+          <div class="sc-desc">A wholesaler uses 2-month forecasts to negotiate bulk purchase agreements with suppliers in advance, locking in better prices before predicted demand peaks.</div>
+          <div class="sc-result">Better supplier terms secured ahead of peak season</div>
+        </div>
+      </div>
+
+      <div class="note-block">
+        <div class="note-icon">💡</div>
+        <div class="note-text">
+          <strong>The Bottom Line</strong>
+          Every business decision made without data carries risk. This platform replaces guesswork with
+          statistically validated predictions — giving business owners the same forecasting power that
+          was previously only available to large enterprises with dedicated data science teams.
+        </div>
+      </div>
+
     </div>
   </div>
 

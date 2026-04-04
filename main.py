@@ -24,26 +24,35 @@ from firebase_admin import credentials, auth
 from Smart_Za3bola import train_on_df
 
 
+
+#import firebase_admin
+#from firebase_admin import credentials
+
+#if not firebase_admin._apps:
+    #cred = credentials.Certificate("/etc/secrets/firebase")
+    #firebase_admin.initialize_app(cred)
 # =============================================================================
 # 🔥  INIT FIREBASE
 # =============================================================================
-import json
 
 # Load Firebase key from environment variable
 firebase_key_json = os.getenv("firebase")
 if not firebase_key_json:
     raise ValueError("firebase environment variable not set")
 
+import json
 cred = credentials.Certificate(json.loads(firebase_key_json))
-firebase_admin.initialize_app(cred)
+firebase_admin.initialize_app(cred, {
+    'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'sales-forecasting-75f26.appspot.com')
+})
 
 security = HTTPBearer()
 
 # =============================================================================
 # 📧  GMAIL CONFIG
 # =============================================================================
-GMAIL_SENDER   = "mlsystems.2211@gmail.com"
-GMAIL_APP_PASS = "rwrf dpka kygd srqf"
+GMAIL_SENDER   = os.getenv("GMAIL_SENDER")
+GMAIL_APP_PASS = os.getenv("GMAIL_APP_PASS")
 
 def send_forecast_email(to_email: str, forecast_csv: str, months: int, metrics: dict):
     msg = MIMEMultipart()
@@ -93,14 +102,49 @@ def send_forecast_email(to_email: str, forecast_csv: str, months: int, metrics: 
 
 
 # =============================================================================
-# 📁  MODELS DIRECTORY — هنا بيتحفظ model كل يوزر
+# ☁️  CLOUD MODELS DIRECTORY 
 # =============================================================================
-MODELS_DIR = "user_models"
-os.makedirs(MODELS_DIR, exist_ok=True)
+import tempfile
+from firebase_admin import storage
 
-def model_path(uid: str) -> str:
-    """يرجع المسار الكامل لملف الـ model الخاص بالـ user"""
-    return os.path.join(MODELS_DIR, f"{uid}.joblib")
+def upload_model(uid: str, bundle: dict):
+    """رفع الـ model للـ Firebase Storage"""
+    bucket = storage.bucket()
+    blob = bucket.blob(f"user_models/{uid}.joblib")
+    with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as tmp:
+        tmp_name = tmp.name
+    try:
+        joblib.dump(bundle, tmp_name)
+        blob.upload_from_filename(tmp_name)
+    finally:
+        if os.path.exists(tmp_name):
+            os.remove(tmp_name)
+
+def download_model(uid: str):
+    """تحميل الـ model من الـ Firebase Storage"""
+    bucket = storage.bucket()
+    blob = bucket.blob(f"user_models/{uid}.joblib")
+    if not blob.exists():
+        return None
+    
+    with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as tmp:
+        tmp_name = tmp.name
+    try:
+        blob.download_to_filename(tmp_name)
+        bundle = joblib.load(tmp_name)
+        return bundle
+    finally:
+        if os.path.exists(tmp_name):
+            os.remove(tmp_name)
+
+def delete_model_cloud(uid: str) -> bool:
+    """حذف الـ model من الـ Firebase Storage"""
+    bucket = storage.bucket()
+    blob = bucket.blob(f"user_models/{uid}.joblib")
+    if blob.exists():
+        blob.delete()
+        return True
+    return False
 
 
 # =============================================================================
@@ -113,13 +157,7 @@ app = FastAPI(
     swagger_ui_parameters={"persistAuthorization": True},
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 
 
 # =============================================================================
@@ -408,11 +446,11 @@ async def train_endpoint(
     except Exception as exc:
         raise HTTPException(422, f"Training failed: {exc}")
 
-    # ── 4. Save model to disk for this user ───────────────────────────────
+    # ── 4. Save model to cloud for this user ──────────────────────────────
     # stamp owner info inside the bundle so we can verify isolation later
     bundle["owner_uid"]   = user["uid"]
     bundle["owner_email"] = user.get("email", "unknown")
-    joblib.dump(bundle, model_path(user["uid"]))
+    upload_model(user["uid"], bundle)
 
     # ── 5. Return metrics ─────────────────────────────────────────────────
     metrics = bundle["metrics"]
@@ -457,15 +495,13 @@ async def forecast_endpoint(
         raise HTTPException(400, "Only CSV files allowed")
 
     # ── 1. Load user's saved model ────────────────────────────────────────
-    path = model_path(user["uid"])
-    if not os.path.exists(path):
+    bundle = download_model(user["uid"])
+    if not bundle:
         raise HTTPException(
             404,
             "No trained model found for your account. "
             "Please call POST /train first with your historical data."
         )
-
-    bundle = joblib.load(path)
 
     contents = await file.read()
 
@@ -531,10 +567,9 @@ async def delete_model(user=Depends(verify_user)):
     يحذف الـ model المحفوظ للـ user — بعد كده لازم يعمل /train تاني.
     مفيد لو اليوزر عايز يعيد الـ training على داتا جديدة من الأساس.
     """
-    path = model_path(user["uid"])
-    if not os.path.exists(path):
+    deleted = delete_model_cloud(user["uid"])
+    if not deleted:
         raise HTTPException(404, "No model found to delete.")
-    os.remove(path)
     return JSONResponse({"message": "✅ Model deleted. You can now retrain with new data."})
 
 
@@ -546,14 +581,13 @@ def get_metrics(user=Depends(verify_user)):
     """
     يرجّع الـ metrics الخاصة بالـ model المحفوظ للـ user.
     """
-    path = model_path(user["uid"])
-    if not os.path.exists(path):
+    bundle = download_model(user["uid"])
+    if not bundle:
         raise HTTPException(
             404,
             "No trained model found. Please call POST /train first."
         )
 
-    bundle  = joblib.load(path)
     metrics = bundle["metrics"]
 
     return JSONResponse({
