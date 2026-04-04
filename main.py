@@ -27,7 +27,14 @@ from Smart_Za3bola import train_on_df
 # =============================================================================
 # 🔥  INIT FIREBASE
 # =============================================================================
-cred = credentials.Certificate(r"c:\Users\Ahmed\Desktop\firebase_key.json")
+import json
+
+# Load Firebase key from environment variable
+firebase_key_json = os.getenv("firebase")
+if not firebase_key_json:
+    raise ValueError("firebase environment variable not set")
+
+cred = credentials.Certificate(json.loads(firebase_key_json))
 firebase_admin.initialize_app(cred)
 
 security = HTTPBearer()
