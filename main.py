@@ -25,6 +25,7 @@ from Smart_Za3bola import train_on_df
 
 
 
+
 #import firebase_admin
 #from firebase_admin import credentials
 
@@ -157,8 +158,13 @@ app = FastAPI(
     swagger_ui_parameters={"persistAuthorization": True},
 )
 
-
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # =============================================================================
 # 🔐  VERIFY USER
