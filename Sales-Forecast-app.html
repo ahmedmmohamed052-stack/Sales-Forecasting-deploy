@@ -5,7 +5,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<div class="status-dot"></div>
+
   <style>
     :root {
       --bg: #03040a;
@@ -855,7 +855,7 @@
     </div>
     <div class="status-badge">
       <div class="status-dot"></div>
-
+      Online
     </div>
   </div>
 
@@ -1271,34 +1271,40 @@
   /* ══════════════════════════════════════════════
      🔐  Login
   ══════════════════════════════════════════════ */
-  async function login() {
-    const email    = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    if (!email || !password) { setMsg('❌ Please fill in all fields', 'error'); return; }
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("msg");
 
-    setLoading(true);
-    setMsg('Authenticating...', 'loading');
-    try {
-      const cred = await auth.signInWithEmailAndPassword(email, password);
-      if (!cred.user.emailVerified) {
-        setMsg('❌ Please verify your email first', 'error');
-        setLoading(false);
-        return;
-      }
-      const token = await cred.user.getIdToken();
-      localStorage.setItem('token', token);
-      document.getElementById('tokenBox').value = token;
-      try { await navigator.clipboard.writeText(token); } catch (_) {}
-      setMsg('✅ Authenticated — launching dashboard...', 'success');
-      setTimeout(() => {
-        window.location.href = `http://127.0.0.1:8000/docs`;
-      }, 900);
-    } catch (err) {
-      setMsg('❌ ' + err.message, 'error');
-    } finally {
-      setLoading(false);
+  msg.className = "loading";
+  msg.innerText = "Logging in...";
+
+  try {
+    const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    // ❗ مهم: تأكد إنه verified
+    if (!user.emailVerified) {
+      msg.className = "error";
+      msg.innerText = "❌ Verify your email first";
+      return;
     }
+
+    // 🔥 خد token جديد دايمًا
+    const token = await user.getIdToken(true);
+
+    localStorage.setItem("token", token);
+
+    msg.className = "success";
+    msg.innerText = "Login successful";
+
+    window.location.href = "dashboard.html";
+
+  } catch (err) {
+    msg.className = "error";
+    msg.innerText = err.message;
   }
+}
 
   function togglePassword() {
     const input = document.getElementById('password');
@@ -1342,6 +1348,5 @@
     document.getElementById('spark-base').setAttribute('points', '0,8  12,8  24,9  36,8 48,9 60,8 72,9 84,8');
   })();
 </script>
-
 </body>
 </html>

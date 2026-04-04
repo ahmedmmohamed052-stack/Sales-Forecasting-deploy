@@ -1,23 +1,27 @@
 import io
-import joblib
+import asyncio
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+import joblib
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from fastapi.security import HTTPBearer
 from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import BaseModel
+
 # 🔐 Firebase
 import firebase_admin
 from firebase_admin import credentials, auth
-from firebase_admin import credentials
-import firebase_admin
-from firebase_admin import credentials
-# 🗄️ MySQL
-from sqlalchemy import create_engine, Column, String, DateTime, Boolean, text
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+
+# 🏋️ Training function
+from Smart_Za3bola import train_on_df
 
 
 # =============================================================================
@@ -26,8 +30,70 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 cred = credentials.Certificate(r"c:\Users\Ahmed\Desktop\firebase_key.json")
 firebase_admin.initialize_app(cred)
 
-
 security = HTTPBearer()
+
+# =============================================================================
+# 📧  GMAIL CONFIG
+# =============================================================================
+GMAIL_SENDER   = "mlsystems.2211@gmail.com"
+GMAIL_APP_PASS = "rwrf dpka kygd srqf"
+
+def send_forecast_email(to_email: str, forecast_csv: str, months: int, metrics: dict):
+    msg = MIMEMultipart()
+    msg["From"]    = GMAIL_SENDER
+    msg["To"]      = to_email
+    msg["Subject"] = f"📊 Your {months}-Month Sales Forecast is Ready"
+
+    body = f"""
+<html><body style="font-family:Arial,sans-serif;background:#03040a;color:#f1f5f9;padding:32px;">
+  <div style="max-width:560px;margin:0 auto;background:#0b0f1e;border:1px solid rgba(124,58,255,.25);border-radius:16px;padding:32px;">
+    <h2 style="color:#7c3aff;margin-bottom:4px;">Sales Forecast Ready 🚀</h2>
+    <p style="color:#64748b;font-size:13px;margin-bottom:24px;">Your {months}-month forecast has been generated successfully.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px;">
+      <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
+        <td style="padding:10px 0;color:#64748b;">Model</td>
+        <td style="padding:10px 0;color:#f1f5f9;text-align:right;"><strong>{metrics.get('model_name','—')}</strong></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
+        <td style="padding:10px 0;color:#64748b;">Val RMSE</td>
+        <td style="padding:10px 0;color:#34d399;text-align:right;"><strong>{round(metrics.get('val_rmse',0),4)}</strong></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
+        <td style="padding:10px 0;color:#64748b;">Baseline RMSE</td>
+        <td style="padding:10px 0;color:#f1f5f9;text-align:right;">{round(metrics.get('baseline_rmse',0),4)}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;color:#64748b;">Forecast Horizon</td>
+        <td style="padding:10px 0;color:#06b6d4;text-align:right;"><strong>{months} months</strong></td>
+      </tr>
+    </table>
+    <p style="color:#64748b;font-size:12px;">The full forecast is attached as a CSV file.</p>
+    <p style="color:#64748b;font-size:11px;margin-top:24px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px;">AI Demand Forecast API · Sent automatically after forecast generation</p>
+  </div>
+</body></html>
+"""
+    msg.attach(MIMEText(body, "html"))
+
+    attachment = MIMEBase("application", "octet-stream")
+    attachment.set_payload(forecast_csv.encode("utf-8"))
+    encoders.encode_base64(attachment)
+    attachment.add_header("Content-Disposition", f"attachment; filename=forecast_{months}mo.csv")
+    msg.attach(attachment)
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(GMAIL_SENDER, GMAIL_APP_PASS)
+        server.sendmail(GMAIL_SENDER, to_email, msg.as_string())
+
+
+# =============================================================================
+# 📁  MODELS DIRECTORY — هنا بيتحفظ model كل يوزر
+# =============================================================================
+MODELS_DIR = "user_models"
+os.makedirs(MODELS_DIR, exist_ok=True)
+
+def model_path(uid: str) -> str:
+    """يرجع المسار الكامل لملف الـ model الخاص بالـ user"""
+    return os.path.join(MODELS_DIR, f"{uid}.joblib")
 
 
 # =============================================================================
@@ -35,14 +101,14 @@ security = HTTPBearer()
 # =============================================================================
 app = FastAPI(
     title="AI Demand Forecast API 🚀",
-    description="Secure SaaS Forecasting API",
-    version="3.0.0",
+    description="Secure SaaS Forecasting API — train once, forecast anytime",
+    version="5.0.0",
     swagger_ui_parameters={"persistAuthorization": True},
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],       # ← في Production حطّ domain بتاعك
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,18 +116,36 @@ app.add_middleware(
 
 
 # =============================================================================
-# 🔐  VERIFY USER (للـ forecast والـ metrics بس)
+# 🔐  VERIFY USER
 # =============================================================================
 def verify_user(token=Depends(security)):
+    """
+    يetحقق من الـ Firebase ID token.
+    - check_revoked=False: أسرع وأكثر موثوقية (Firebase بيتحقق من الـ signature والـ expiry تلقائي)
+    - لو التوكين انتهى (<1 hour) Firebase بيرفضه بـ ExpiredIdTokenError
+    """
     try:
-        decoded_token = auth.verify_id_token(token.credentials)
+        decoded_token = auth.verify_id_token(token.credentials, check_revoked=False)
         return decoded_token
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    except auth.ExpiredIdTokenError:
+        raise HTTPException(
+            status_code=401,
+            detail="Token expired — please refresh the page or login again"
+        )
+    except auth.InvalidIdTokenError as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid token: {e}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Authentication failed: {e}"
+        )
 
 
 # =============================================================================
-# 📄  SWAGGER DOCS
+# 📄  SWAGGER DOCS — auto-authorize from localStorage token
 # =============================================================================
 @app.get("/docs", include_in_schema=False)
 async def custom_docs():
@@ -70,90 +154,114 @@ async def custom_docs():
         title="My API"
     ).body.decode("utf-8")
 
-    # ══════════════════════════════════════════════════════
-    # الحل النهائي: نعمل wrap للـ SwaggerUIBundle قبل الـ init
-    # بنحط السكريبت قبل "<script>" اللي فيه "const ui = SwaggerUIBundle"
-    # ══════════════════════════════════════════════════════
-
-    wrap_script = """<script>
+    wrap_script = """
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script>
 (function(){
-    var t = localStorage.getItem("token");
-    if(!t) return;
+    // ── Init Firebase ──────────────────────────────────────────────────────
+    var firebaseConfig = {
+        apiKey: "AIzaSyBTi0hycT_nCgThOoLDLDfXhCuLWeKcPMU",
+        authDomain: "sales-forecasting-75f26.firebaseapp.com"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-    // بنستنى SwaggerUIBundle يتحمّل من الـ CDN
+    // currentUser: مرجع للـ Firebase user الحالي عشان نجيب منه token fresh في أي وقت
+    var currentUser = null;
+
+    // getToken: بيجيب token fresh من Firebase مباشرة (مش من localStorage)
+    // forceRefresh=false: يستخدم الـ cache لو التوكن لسه صالح (< 1 hour)
+    function getToken(forceRefresh) {
+        if (!currentUser) return Promise.resolve(null);
+        return currentUser.getIdToken(forceRefresh || false);
+    }
+
+    function applyTokenToSwagger(token) {
+        if (!token || !window.ui) return;
+        try {
+            window.ui.authActions.authorize({
+                HTTPBearer: {
+                    name: "HTTPBearer", value: token,
+                    schema: {type: "http", scheme: "bearer"}
+                }
+            });
+        } catch(e) { console.warn("Swagger authorize error:", e); }
+    }
+
+    // ── Auth state listener ─────────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (!user) {
+            currentUser = null;
+            console.warn("⚠️ No Firebase user — please login first.");
+            return;
+        }
+        currentUser = user;
+        console.log("🔥 Firebase user:", user.email, "| UID:", user.uid);
+
+        // جيب token fresh وحدّث الـ Swagger
+        getToken(true).then(function(token) {
+            applyTokenToSwagger(token);
+            console.log("✅ Swagger authorized for:", user.email);
+        });
+
+        // جدد التوكن كل 50 دقيقة (قبل انتهاء الـ 60 دقيقة)
+        setInterval(function() {
+            getToken(true).then(function(token) {
+                applyTokenToSwagger(token);
+                console.log("🔄 Token proactively refreshed for:", user.email);
+            });
+        }, 50 * 60 * 1000);
+    });
+
+    // ── Swagger Bundle wrapper ──────────────────────────────────────────────
     var waitForBundle = setInterval(function(){
-        if(typeof SwaggerUIBundle === "undefined") return;
+        if (typeof SwaggerUIBundle === "undefined") return;
         clearInterval(waitForBundle);
 
-        // نعمل wrap
         var _Orig = SwaggerUIBundle;
-        window.SwaggerUIBundle = function(cfg){
-
-            // ① requestInterceptor — مضمون 100%
-            // كل request من Swagger هيكون فيه Authorization header
+        window.SwaggerUIBundle = function(cfg) {
             var _ri = cfg.requestInterceptor;
-            cfg.requestInterceptor = function(req){
-                req.headers["Authorization"] = "Bearer " + t;
-                return _ri ? _ri(req) : req;
+
+            // ⬇ كل request: اجيب token fresh من Firebase (مش من localStorage)
+            // ده بيضمن إن كل request بيتبعت بتوكن صالح
+            cfg.requestInterceptor = function(req) {
+                // بنرجع promise — Swagger بيدعم async interceptors
+                return getToken(false).then(function(token) {
+                    if (token) {
+                        req.headers["Authorization"] = "Bearer " + token;
+                    }
+                    return _ri ? _ri(req) : req;
+                });
             };
 
-            // ② onComplete — يعمل authorize في الـ UI لما يخلص
             var _oc = cfg.onComplete;
-            cfg.onComplete = function(){
-                try {
-                    window.ui.authActions.authorize({
-                        HTTPBearer:{
-                            name:"HTTPBearer",
-                            value:t,
-                            schema:{type:"http",scheme:"bearer"}
-                        }
-                    });
-                    console.log("✅ Swagger auto-authorized");
-                } catch(e){ console.warn("authorize err:", e); }
-                if(_oc) _oc();
+            cfg.onComplete = function() {
+                // لو التوكن جاهز authorize فورًا
+                getToken(false).then(function(token) {
+                    applyTokenToSwagger(token);
+                    console.log("✅ Swagger auto-authorized on load");
+                });
+                if (_oc) _oc();
             };
 
             var instance = _Orig(cfg);
             window.ui = instance;
             return instance;
         };
-        // نحافظ على كل properties الأصلية (presets, plugins, etc.)
-        Object.keys(_Orig).forEach(function(k){
-            try{ window.SwaggerUIBundle[k] = _Orig[k]; }catch(e){}
+        Object.keys(_Orig).forEach(function(k) {
+            try { window.SwaggerUIBundle[k] = _Orig[k]; } catch(e) {}
         });
-
-    }, 30);  // بيفحص كل 30ms لحد ما SwaggerUIBundle يتعرّف
+    }, 30);
 })();
 </script>"""
 
-    # نحط الـ wrap script مباشرة قبل آخر <script> في الـ HTML
-    # (اللي هو الـ init script اللي فيه SwaggerUIBundle call)
     last_script_pos = html.rfind("<script>")
     html = html[:last_script_pos] + wrap_script + "\n" + html[last_script_pos:]
     return HTMLResponse(html)
 
 
 # =============================================================================
-# ✅  REGISTER USER — مخفي تماماً عن Swagger
-# =============================================================================
-
-
-
-# =============================================================================
-# LOAD MODEL
-# =============================================================================
-try:
-    bundle           = joblib.load("model_bundle.pkl")
-    best_model       = bundle["model"]
-    BEST_LAGS        = bundle["lags"]
-    BEST_ROLL        = bundle["roll"]
-    TRAINING_RESULTS = bundle["results"]
-except Exception:
-    raise Exception("❌ model_bundle.pkl not found. Run train.py first.")
-
-
-# =============================================================================
-# REQUIRED COLUMNS
+# CONSTANTS
 # =============================================================================
 REQUIRED_COLUMNS = {
     "month",
@@ -186,7 +294,7 @@ def validate_and_load(contents: bytes) -> pd.DataFrame:
     return df.sort_values(["product_id", "month"]).reset_index(drop=True)
 
 
-def engineer_features(df):
+def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["conversion_rate"] = (
         df["number_of_times_add_followed_by_purchase"]
@@ -202,16 +310,23 @@ def engineer_features(df):
     ])
 
 
-# =============================================================================
-# FORECAST
-# =============================================================================
-def forecast(df: pd.DataFrame) -> pd.DataFrame:
-    future_predictions = []
-    last_month = df["month"].max()
+FORECAST_HORIZON_OPTIONS = [3, 6, 9, 12]
+
+def run_forecast(df: pd.DataFrame, bundle: dict, months: int = 3) -> pd.DataFrame:
+    if months not in FORECAST_HORIZON_OPTIONS:
+        raise ValueError(f"months must be one of {FORECAST_HORIZON_OPTIONS}")
+
+    model     = bundle["model"]
+    BEST_LAGS = bundle["lags"]
+    BEST_ROLL = bundle["roll"]
+
+    last_month      = df["month"].max()
     forecast_months = [
-        last_month + pd.DateOffset(months=1),
-        last_month + pd.DateOffset(months=2),
+        last_month + pd.DateOffset(months=i)
+        for i in range(1, months + 1)
     ]
+
+    future_predictions = []
 
     for product in df["product_id"].unique():
         product_df = df[df["product_id"] == product]
@@ -223,7 +338,7 @@ def forecast(df: pd.DataFrame) -> pd.DataFrame:
         conv_rate  = hist["conversion_rate"].iloc[-1]
         drop_rate  = hist["cart_drop_rate"].iloc[-1]
 
-        for step in range(2):
+        for step in range(months):
             row = {f"lag_{i+1}": lag_values[i] for i in range(BEST_LAGS)}
             row["product_id"] = product
 
@@ -233,11 +348,11 @@ def forecast(df: pd.DataFrame) -> pd.DataFrame:
             row["conversion_rate"] = conv_rate
             row["cart_drop_rate"]  = drop_rate
 
-            pred = max(0.0, round(float(best_model.predict(pd.DataFrame([row]))[0]), 2))
+            pred = max(0.0, round(float(model.predict(pd.DataFrame([row]))[0]), 2))
 
             future_predictions.append({
-                "product_id"         : product,
-                "forecast_month"     : forecast_months[step].strftime("%Y-%m"),
+                "product_id":          product,
+                "forecast_month":      forecast_months[step].strftime("%Y-%m"),
                 "predicted_purchases": pred,
             })
 
@@ -247,41 +362,200 @@ def forecast(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # =============================================================================
-# 🚀  FORECAST ENDPOINT (PROTECTED — بيظهر في Swagger)
+# 🏋️  TRAIN ENDPOINT — يعمل train مرة وبيحفظ الـ model للـ user
 # =============================================================================
-@app.post("/forecast")
-async def forecast_endpoint(
-    file: UploadFile = File(...),
+@app.post(
+    "/train",
+    summary="Upload CSV → train model → save it for your account",
+    response_description="Training metrics for the saved model",
+)
+async def train_endpoint(
+    file: UploadFile = File(..., description="CSV file with historical sales data"),
     user=Depends(verify_user),
 ):
+    """
+    **Flow:**
+    1. استقبال الـ CSV وتحقق من الأعمدة
+    2. Feature engineering (conversion_rate, cart_drop_rate)
+    3. **Train** — يشغّل الـ grid search ويحفظ أحسن model
+    4. يحفظ الـ model على disk باسم الـ user UID
+    5. يرجّع الـ metrics
+    """
+
     if not file.filename.endswith(".csv"):
         raise HTTPException(400, "Only CSV files allowed")
 
     contents = await file.read()
-    df       = validate_and_load(contents)
-    df       = engineer_features(df)
-    preds_df = forecast(df)
+
+    # ── 1. Load & validate ────────────────────────────────────────────────
+    df = validate_and_load(contents)
+
+    # ── 2. Feature engineering ────────────────────────────────────────────
+    df = engineer_features(df)
+
+    # ── 3. Train — run in thread pool so we don't block the event loop ──────
+    # train_on_df is a slow synchronous function (grid search).
+    # Running it directly in async would freeze the entire server.
+    try:
+        bundle = await asyncio.to_thread(train_on_df, df)
+    except Exception as exc:
+        raise HTTPException(422, f"Training failed: {exc}")
+
+    # ── 4. Save model to disk for this user ───────────────────────────────
+    # stamp owner info inside the bundle so we can verify isolation later
+    bundle["owner_uid"]   = user["uid"]
+    bundle["owner_email"] = user.get("email", "unknown")
+    joblib.dump(bundle, model_path(user["uid"]))
+
+    # ── 5. Return metrics ─────────────────────────────────────────────────
+    metrics = bundle["metrics"]
+    return JSONResponse({
+        "message":       "✅ Model trained and saved successfully",
+        "uid":           user["uid"],
+        "owner_email":   user.get("email", "unknown"),
+        "model_name":    metrics["model_name"],
+        "train_rmse":    round(metrics["train_rmse"],    4),
+        "val_rmse":      round(metrics["val_rmse"],      4),
+        "baseline_rmse": round(metrics["baseline_rmse"], 4),
+        "best_lags":     bundle["lags"],
+        "best_roll":     bundle["roll"],
+    })
+
+
+# =============================================================================
+# 🚀  FORECAST ENDPOINT — يلود الـ model المحفوظ ويعمل predict مباشرة
+# =============================================================================
+@app.post(
+    "/forecast",
+    summary="Upload CSV → load your saved model → get forecast",
+    response_description="CSV file with predicted purchases per product",
+)
+async def forecast_endpoint(
+    file: UploadFile = File(..., description="CSV file with historical sales data"),
+    months: int = Query(3, description="Forecast horizon in months", enum=FORECAST_HORIZON_OPTIONS),
+    user=Depends(verify_user),
+):
+    """
+    **Flow:**
+    1. التحقق إن اليوزر عمل /train قبل كده
+    2. تحميل الـ model المحفوظ من disk
+    3. استقبال الـ CSV الجديد وعمل Feature engineering عليه
+    4. **Forecast** مباشرة بدون أي retrain
+    5. يرجّع CSV بالـ predictions
+
+    > ⚠️ لازم تعمل `/train` الأول قبل ما تستخدم هذا الـ endpoint
+    """
+
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(400, "Only CSV files allowed")
+
+    # ── 1. Load user's saved model ────────────────────────────────────────
+    path = model_path(user["uid"])
+    if not os.path.exists(path):
+        raise HTTPException(
+            404,
+            "No trained model found for your account. "
+            "Please call POST /train first with your historical data."
+        )
+
+    bundle = joblib.load(path)
+
+    contents = await file.read()
+
+    # ── 2. Load & validate ────────────────────────────────────────────────
+    df = validate_and_load(contents)
+
+    # ── 3. Feature engineering ────────────────────────────────────────────
+    df = engineer_features(df)
+
+    # ── 4. Forecast ───────────────────────────────────────────────────────
+    preds_df = run_forecast(df, bundle, months=months)
 
     if preds_df.empty:
-        raise HTTPException(422, "Not enough data per product")
+        raise HTTPException(422, "Not enough data per product to forecast")
 
+    # ── 5. Return CSV ─────────────────────────────────────────────────────
     stream = io.StringIO()
     preds_df.to_csv(stream, index=False)
     stream.seek(0)
 
+    metrics = bundle["metrics"]
+
+    # ── 6. Send email (non-blocking) ─────────────────────────────────────────
+    user_email = user.get("email")
+    if user_email:
+        try:
+            await asyncio.to_thread(
+                send_forecast_email,
+                user_email,
+                stream.getvalue(),
+                months,
+                metrics,
+            )
+        except Exception as mail_exc:
+            print(f"⚠️ Email send failed (non-fatal): {mail_exc}")
+
+    stream.seek(0)
     return StreamingResponse(
         iter([stream.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=forecast_{user['uid']}.csv"},
+        headers={
+            "Content-Disposition": f"attachment; filename=forecast_{user['uid']}.csv",
+            "X-Model-Name":    metrics["model_name"],
+            "X-Train-RMSE":    str(round(metrics["train_rmse"],    4)),
+            "X-Val-RMSE":      str(round(metrics["val_rmse"],      4)),
+            "X-Baseline-RMSE": str(round(metrics["baseline_rmse"], 4)),
+            "X-Best-Lags":     str(bundle["lags"]),
+            "X-Best-Roll":     str(bundle["roll"]),
+            "X-Forecast-Months": str(months),
+        },
     )
 
 
 # =============================================================================
-# 📊  METRICS ENDPOINT (PROTECTED — بيظهر في Swagger)
+# 🗑️  DELETE MODEL ENDPOINT — يحذف الـ model المحفوظ للـ user
 # =============================================================================
-@app.get("/metrics")
+@app.delete(
+    "/model",
+    summary="Delete your saved model",
+)
+async def delete_model(user=Depends(verify_user)):
+    """
+    يحذف الـ model المحفوظ للـ user — بعد كده لازم يعمل /train تاني.
+    مفيد لو اليوزر عايز يعيد الـ training على داتا جديدة من الأساس.
+    """
+    path = model_path(user["uid"])
+    if not os.path.exists(path):
+        raise HTTPException(404, "No model found to delete.")
+    os.remove(path)
+    return JSONResponse({"message": "✅ Model deleted. You can now retrain with new data."})
+
+
+# =============================================================================
+# 📊  METRICS ENDPOINT (PROTECTED)
+# =============================================================================
+@app.get("/metrics", summary="Get your saved model's metrics")
 def get_metrics(user=Depends(verify_user)):
-    return {
-        "total_experiments": len(TRAINING_RESULTS),
-        "results"          : TRAINING_RESULTS,
-    }
+    """
+    يرجّع الـ metrics الخاصة بالـ model المحفوظ للـ user.
+    """
+    path = model_path(user["uid"])
+    if not os.path.exists(path):
+        raise HTTPException(
+            404,
+            "No trained model found. Please call POST /train first."
+        )
+
+    bundle  = joblib.load(path)
+    metrics = bundle["metrics"]
+
+    return JSONResponse({
+        "model_name":    metrics["model_name"],
+        "owner_email":   bundle.get("owner_email", "unknown"),
+        "train_rmse":    round(metrics["train_rmse"],    4),
+        "val_rmse":      round(metrics["val_rmse"],      4),
+        "baseline_rmse": round(metrics["baseline_rmse"], 4),
+        "best_lags":     bundle["lags"],
+        "best_roll":     bundle["roll"],
+    })
+
